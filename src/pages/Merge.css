@@ -1,0 +1,151 @@
+.merge-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.merge-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.merge-header h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.merge-header p {
+    color: var(--color-text-secondary);
+}
+
+.file-list-container {
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+}
+
+.file-actions-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.btn-secondary,
+.btn-add-more {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-add-more label {
+    cursor: pointer;
+}
+
+.btn-secondary:hover,
+.btn-add-more:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--color-text-secondary);
+}
+
+.file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: transform 0.2s;
+}
+
+.file-item:hover {
+    border-color: var(--color-primary);
+    transform: translateX(2px);
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    overflow: hidden;
+}
+
+.file-name {
+    display: block;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+}
+
+.file-size {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+
+.file-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.control-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    padding: 0.25rem;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.control-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-primary);
+}
+
+.control-btn.delete:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.control-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.merge-actions {
+    display: flex;
+    justify-content: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.merge-btn,
+.download-btn {
+    width: 100%;
+    text-align: center;
+    display: inline-block;
+    font-size: 1.1rem;
+}
+
+.merge-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}

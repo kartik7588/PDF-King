@@ -1,0 +1,57 @@
+.edit-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.page-container {
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    display: inline-block;
+    /* Ensure it wraps the Page content */
+}
+
+.draggable-text {
+    position: absolute;
+    cursor: move;
+    border: 1px dashed transparent;
+    padding: 2px;
+    z-index: 100;
+    /* Ensure it is above the PDF Canvas */
+}
+
+.draggable-text.active {
+    border-color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.draggable-text textarea {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-family: 'Helvetica', sans-serif;
+    /* Setup to match PDF font roughly */
+    resize: none;
+    width: auto;
+    min-width: 100px;
+    height: auto;
+    overflow: hidden;
+    outline: none;
+    white-space: pre;
+}
+
+.delete-handle {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+}

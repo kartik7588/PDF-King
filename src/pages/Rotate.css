@@ -1,0 +1,113 @@
+.rotate-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.rotate-workspace {
+    padding: 1.5rem;
+    min-height: 500px;
+}
+
+.rotate-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.batch-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.tool-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.tool-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-primary);
+}
+
+.pdf-grid .react-pdf__Document {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+}
+
+.page-card {
+    position: relative;
+    width: 200px;
+    height: 280px;
+    /* Approx A4 aspect ratio wrapper + control space */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-md);
+    padding: 10px;
+    overflow: hidden;
+    /* Contain rotation overflow? No, actually, rotation might clip if overflow hidden. */
+    /* Let's remove overflow hidden and rely on spacing */
+    overflow: visible;
+}
+
+.page-preview {
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    /* React-PDF Page wrapper styles */
+    display: flex;
+    justify-content: center;
+}
+
+.page-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: rgba(15, 23, 42, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    border-bottom-left-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.page-card:hover .page-overlay {
+    opacity: 1;
+}
+
+.page-overlay button {
+    background: none;
+    border: none;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    padding: 5px;
+}
+
+.page-overlay button:hover {
+    color: var(--color-primary);
+}
+
+.loading-state,
+.error-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--color-text-secondary);
+    width: 100%;
+}

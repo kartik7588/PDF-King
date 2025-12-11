@@ -1,0 +1,67 @@
+.media-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.work-area {
+    padding: 1rem;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.5rem;
+}
+
+.page-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.canvas-wrapper {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    overflow: auto;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    border-radius: var(--radius-md);
+}
+
+.page-container {
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.draggable-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    cursor: move;
+    border: 2px dashed var(--color-primary);
+    z-index: 100;
+}
+
+.draggable-image:hover {
+    border-color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.page-controls button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.page-controls button:disabled {
+    opacity: 0.3;
+}
