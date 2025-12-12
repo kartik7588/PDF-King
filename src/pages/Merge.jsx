@@ -3,11 +3,13 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'; // No
 import { FileText, X, ArrowDown, ArrowUp } from 'lucide-react';
 import Dropzone from '../components/Dropzone';
 import { mergePDFs } from '../utils/pdfActions';
+import { saveDownloadRecord } from '../utils/downloadManager';
 import './Merge.css';
 
 export default function Merge() {
     const [files, setFiles] = useState([]);
     const [isMerging, setIsMerging] = useState(false);
+    const [mergedBlob, setMergedBlob] = useState(null);
     const [downloadUrl, setDownloadUrl] = useState(null);
 
     const handleFilesDropped = (newFiles) => {
@@ -46,12 +48,29 @@ export default function Merge() {
             const mergedBytes = await mergePDFs(files.map(f => f.file));
             const blob = new Blob([mergedBytes], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
+            setMergedBlob(blob);
             setDownloadUrl(url);
         } catch (error) {
             alert(error.message);
         } finally {
             setIsMerging(false);
         }
+    };
+
+    const handleDownload = async () => {
+        if (!mergedBlob) return;
+        const fileName = 'merged-document.pdf';
+        const sizeStr = (mergedBlob.size / 1024 / 1024).toFixed(2) + ' MB';
+
+        await saveDownloadRecord(fileName, sizeStr, mergedBlob);
+
+        // Trigger download
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     return (
@@ -117,13 +136,12 @@ export default function Merge() {
 
                         <div className="merge-actions">
                             {downloadUrl ? (
-                                <a
-                                    href={downloadUrl}
-                                    download="merged-document.pdf"
+                                <button
+                                    onClick={handleDownload}
                                     className="btn-primary download-btn"
                                 >
                                     Download Merged PDF
-                                </a>
+                                </button>
                             ) : (
                                 <button
                                     className="btn-primary merge-btn"

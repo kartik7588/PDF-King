@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Merge from './pages/Merge';
@@ -8,8 +9,8 @@ import Rotate from './pages/Rotate';
 import AddMedia from './pages/AddMedia';
 import Edit from './pages/Edit';
 import Compress from './pages/Compress';
+import DownloadedFiles from './pages/DownloadedFiles';
 
-// Placeholder components for other routes
 const Placeholder = ({ title }) => (
   <div className="glass-panel" style={{ padding: '2rem' }}>
     <h2>{title}</h2>
@@ -19,7 +20,7 @@ const Placeholder = ({ title }) => (
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
@@ -29,9 +30,10 @@ function App() {
           <Route path="/add-media" element={<AddMedia />} />
           <Route path="/compress" element={<Compress />} />
           <Route path="/edit" element={<Edit />} />
+          <Route path="/downloads" element={<DownloadedFiles />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

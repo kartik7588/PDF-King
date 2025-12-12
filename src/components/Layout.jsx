@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { 
-  Files, 
-  Scissors, 
-  RotateCw, 
-  ImagePlus, 
-  Minimize2, 
-  PenTool, 
+import {
+  Files,
+  Scissors,
+  RotateCw,
+  ImagePlus,
+  Minimize2,
+  PenTool,
   Home,
   Menu,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import clsx from 'clsx';
 import './Layout.css'; // We'll create this for layout-specific styles
@@ -22,6 +23,7 @@ const SIDEBAR_ITEMS = [
   { icon: ImagePlus, label: 'Add Media', path: '/add-media' },
   { icon: Minimize2, label: 'Compress', path: '/compress' },
   { icon: PenTool, label: 'Edit PDF', path: '/edit' },
+  { icon: Download, label: 'Downloads', path: '/downloads' },
 ];
 
 export default function Layout() {
@@ -37,7 +39,7 @@ export default function Layout() {
 
   return (
     <div className="app-container">
-      {/* Mobile Header */ }
+      {/* Mobile Header */}
       <header className="mobile-header">
         <div className="logo-mobile">
           <span className="logo-icon">👑</span>
@@ -48,7 +50,7 @@ export default function Layout() {
         </button>
       </header>
 
-      {/* Sidebar */ }
+      {/* Sidebar */}
       <aside className={clsx("sidebar glass-panel", { "open": isSidebarOpen })}>
         <div className="sidebar-header">
           <div className="logo-container">
@@ -77,12 +79,12 @@ export default function Layout() {
         </div>
       </aside>
 
-      {/* Main Content */ }
+      {/* Main Content */}
       <main className="main-content">
         <header className="page-header glass-panel">
           <h2>{pageTitle}</h2>
           <div className="header-actions">
-           {/* Placeholder for toolbar/actions */}
+            {/* Placeholder for toolbar/actions */}
           </div>
         </header>
 

@@ -4,6 +4,7 @@ import { Document, Page } from 'react-pdf';
 import { Type, Save, ChevronLeft, ChevronRight, Download, Plus, X } from 'lucide-react';
 import Dropzone from '../components/Dropzone';
 import { addTextToPDF, saveAnnotationsToPDF } from '../utils/pdfActions';
+import { saveDownloadRecord } from '../utils/downloadManager';
 import './Edit.css';
 
 // Separate component to handle Ref for Draggable (Fixes React 18 StrictMode crash)
@@ -15,6 +16,7 @@ export default function Edit() {
     const [currPage, setCurrPage] = useState(1);
     const [isProcessing, setIsProcessing] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState(null);
+    const [editedBlob, setEditedBlob] = useState(null);
 
     // Array of { id, text, x, y, size, color, isEditing, page }
     const [texts, setTexts] = useState([]);
@@ -79,6 +81,7 @@ export default function Edit() {
 
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
+            setEditedBlob(blob);
             setDownloadUrl(url);
 
         } catch (error) {
@@ -87,6 +90,22 @@ export default function Edit() {
         } finally {
             setIsProcessing(false);
         }
+    };
+
+    const handleDownload = async () => {
+        if (!editedBlob) return;
+        const fileName = 'edited-text.pdf';
+        const sizeStr = (editedBlob.size / 1024 / 1024).toFixed(2) + ' MB';
+
+        await saveDownloadRecord(fileName, sizeStr, editedBlob);
+
+        // Trigger download
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     return (
@@ -115,9 +134,13 @@ export default function Edit() {
 
                         <div className="action-controls">
                             {downloadUrl ? (
-                                <a href={downloadUrl} download="edited-text.pdf" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <button
+                                    onClick={handleDownload}
+                                    className="btn-primary"
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                                >
                                     <Download size={16} /> Download
-                                </a>
+                                </button>
                             ) : (
                                 <button className="btn-primary" onClick={handleSave} disabled={isProcessing}>
                                     {isProcessing ? 'Saving...' : 'Save PDF'}
