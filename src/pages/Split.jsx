@@ -20,6 +20,10 @@ export default function Split() {
     const handleFileDropped = async (files) => {
         if (files.length > 0) {
             const selectedFile = files[0];
+            if (selectedFile.size > 150 * 1024 * 1024) {
+                alert("File too large. Please use files under 150MB.");
+                return;
+            }
             setFile(selectedFile);
             setDownloadUrl(null);
 

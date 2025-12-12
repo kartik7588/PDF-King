@@ -23,7 +23,12 @@ export default function Rotate() {
 
     const handleFileDropped = (files) => {
         if (files.length > 0) {
-            setFile(files[0]);
+            const selected = files[0];
+            if (selected.size > 150 * 1024 * 1024) {
+                alert("File too large. Please use files under 150MB.");
+                return;
+            }
+            setFile(selected);
             setRotations({});
             setDownloadUrl(null);
             setRotatedBlob(null);

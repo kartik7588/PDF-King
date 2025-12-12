@@ -14,8 +14,18 @@ export default function Merge() {
     const [downloadUrl, setDownloadUrl] = useState(null);
 
     const handleFilesDropped = (newFiles) => {
+        const validFiles = newFiles.filter(file => {
+            if (file.size > 150 * 1024 * 1024) {
+                alert(`Skipped ${file.name}: File exceeds 150MB limit.`);
+                return false;
+            }
+            return true;
+        });
+
+        if (validFiles.length === 0) return;
+
         // Add unique ID to each file for list key
-        const filesWithId = newFiles.map(file => ({
+        const filesWithId = validFiles.map(file => ({
             file,
             id: Math.random().toString(36).substr(2, 9),
             name: file.name,

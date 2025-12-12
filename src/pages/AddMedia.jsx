@@ -23,8 +23,13 @@ export default function AddMedia() {
    const [editedBlob, setEditedBlob] = useState(null);
    const containerRef = useRef(null);
 
-   const handlePDFDropped = (files) => {
-      setFile(files[0]);
+   const handleFileDropped = (files) => {
+      const selected = files[0];
+      if (selected.size > 150 * 1024 * 1024) {
+         alert("File too large. Please use files under 150MB.");
+         return;
+      }
+      setFile(selected);
       setDownloadUrl(null);
    };
 
@@ -147,7 +152,7 @@ export default function AddMedia() {
          </div>
 
          {!file ? (
-            <Dropzone onFilesDropped={handlePDFDropped} multiple={false} />
+            <Dropzone onFilesDropped={handleFileDropped} multiple={false} />
          ) : (
             <div className="work-area glass-panel">
                <div className="toolbar">

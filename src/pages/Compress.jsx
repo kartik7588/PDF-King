@@ -25,7 +25,12 @@ export default function Compress() {
     const [compressedBlob, setCompressedBlob] = useState(null);
 
     const handleFileDropped = (files) => {
-        setFile(files[0]);
+        const selected = files[0];
+        if (selected.size > 50 * 1024 * 1024) { // 50MB limit
+            alert("File too large for compression. Please use files under 50MB to prevent browser crash.");
+            return;
+        }
+        setFile(selected);
         setDownloadUrl(null);
         setCompressedSize(null);
         setProgress(0);
