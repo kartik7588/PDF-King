@@ -17,7 +17,7 @@ export const initDB = async () => {
     });
 };
 
-export const saveDownloadRecord = async (fileName, sizeStr, blob) => {
+export const saveDownloadRecord = async (fileName, sizeStr, blob, source = 'Unknown') => {
     try {
         const db = await initDB();
         const uniqueId = Math.random().toString(36).substr(2, 9) + Date.now();
@@ -30,6 +30,7 @@ export const saveDownloadRecord = async (fileName, sizeStr, blob) => {
             id: uniqueId,
             fileName,
             size: sizeStr,
+            source, // "Merge", "Split", etc.
             date: new Date().toISOString(),
             blob: blob, // Store the file content
         };

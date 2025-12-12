@@ -3,6 +3,8 @@ import { Document, Page } from 'react-pdf';
 import { RotateCw, Download, FileText, Loader2, RotateCcw } from 'lucide-react';
 import Dropzone from '../components/Dropzone';
 import { rotatePDF } from '../utils/pdfActions';
+import { trackDownload } from '../utils/analytics';
+import { saveDownloadRecord } from '../utils/downloadManager';
 import './Rotate.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
@@ -13,6 +15,7 @@ export default function Rotate() {
     const [rotations, setRotations] = useState({}); // { pageIndex: 90 }
     const [isProcessing, setIsProcessing] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState(null);
+    const [rotatedBlob, setRotatedBlob] = useState(null);
 
     const onDocumentLoadSuccess = ({ numPages }) => {
         setNumPages(numPages);
@@ -23,6 +26,7 @@ export default function Rotate() {
             setFile(files[0]);
             setRotations({});
             setDownloadUrl(null);
+            setRotatedBlob(null);
         }
     };
 
@@ -53,6 +57,7 @@ export default function Rotate() {
             const rotatedBytes = await rotatePDF(file, rotations);
             const blob = new Blob([rotatedBytes], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
+            setRotatedBlob(blob);
             setDownloadUrl(url);
         } catch (error) {
             alert("Failed to rotate PDF");
@@ -60,6 +65,29 @@ export default function Rotate() {
         } finally {
             setIsProcessing(false);
         }
+    };
+
+    const handleDownload = async () => {
+        if (!rotatedBlob) return;
+        const fileName = `rotated-${file.name}`;
+        const sizeStr = (rotatedBlob.size / 1024 / 1024).toFixed(2) + ' MB';
+
+        // Track
+        trackDownload('Rotate', {
+            pagesCount: numPages,
+            size: sizeStr
+        });
+
+        // Save History
+        await saveDownloadRecord(fileName, sizeStr, rotatedBlob, 'Rotate');
+
+        // Download
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     return (
@@ -80,9 +108,9 @@ export default function Rotate() {
                             <button className="tool-btn" onClick={() => rotateAll('ccw')}>Rotate All CCW <RotateCcw size={16} /></button>
                         </div>
                         {downloadUrl ? (
-                            <a href={downloadUrl} download={`rotated-${file.name}`} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem' }}>
+                            <button onClick={handleDownload} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem' }}>
                                 <Download size={16} /> Download
-                            </a>
+                            </button>
                         ) : (
                             <button className="btn-primary" onClick={handleApply} disabled={isProcessing}>
                                 {isProcessing ? <Loader2 className="animate-spin" /> : 'Apply Rotation'}

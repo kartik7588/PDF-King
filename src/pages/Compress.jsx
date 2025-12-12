@@ -3,7 +3,17 @@ import { Minimize2, Download, Settings, FileText, Loader2 } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
 import { pdfjs } from 'react-pdf';
 import Dropzone from '../components/Dropzone';
+import { trackDownload } from '../utils/analytics';
+import { saveDownloadRecord } from '../utils/downloadManager';
 import './Compress.css';
+
+// Ensure worker is loaded for direct API usage if not already set globally
+// Standard Vite/React-PDF setup
+try {
+    pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+} catch (e) {
+    console.warn("Failed to set pdfjs worker", e);
+}
 
 export default function Compress() {
     const [file, setFile] = useState(null);
@@ -12,6 +22,7 @@ export default function Compress() {
     const [progress, setProgress] = useState(0);
     const [downloadUrl, setDownloadUrl] = useState(null);
     const [compressedSize, setCompressedSize] = useState(null);
+    const [compressedBlob, setCompressedBlob] = useState(null);
 
     const handleFileDropped = (files) => {
         setFile(files[0]);
@@ -69,6 +80,7 @@ export default function Compress() {
             const savedBlob = new Blob([savedBytes], { type: 'application/pdf' });
 
             setDownloadUrl(URL.createObjectURL(savedBlob));
+            setCompressedBlob(savedBlob);
             setCompressedSize((savedBytes.byteLength / 1024 / 1024).toFixed(2));
 
         } catch (error) {
@@ -77,6 +89,29 @@ export default function Compress() {
         } finally {
             setIsProcessing(false);
         }
+    };
+
+    const handleDownload = async () => {
+        if (!compressedBlob) return;
+        const fileName = `compressed-${file.name}`;
+
+        // Track in GA4
+        trackDownload('Compress', {
+            originalSizeMB: (file.size / 1024 / 1024).toFixed(2),
+            finalSizeMB: compressedSize,
+            compressionRatio: ((1 - (compressedSize / (file.size / 1024 / 1024))) * 100).toFixed(0) + '%'
+        });
+
+        // Save to History
+        await saveDownloadRecord(fileName, compressedSize + ' MB', compressedBlob, 'Compress');
+
+        // Download
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     return (
@@ -137,10 +172,10 @@ export default function Compress() {
                                         Reduced by {((1 - (compressedSize / (file.size / 1024 / 1024))) * 100).toFixed(0)}%
                                     </p>
                                 </div>
-                                <a href={downloadUrl} download={`compressed-${file.name}`} className="btn-primary" style={{ display: 'block', textAlign: 'center' }}>
+                                <button onClick={handleDownload} className="btn-primary" style={{ display: 'block', textAlign: 'center', width: '100%', marginBottom: '10px' }}>
                                     <Download size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
                                     Download Compressed PDF
-                                </a>
+                                </button>
                                 <button onClick={() => setFile(null)} className="btn-secondary" style={{ marginTop: '1rem', width: '100%' }}>Compress Another</button>
                             </div>
                         ) : (

@@ -3,6 +3,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'; // No
 import { FileText, X, ArrowDown, ArrowUp } from 'lucide-react';
 import Dropzone from '../components/Dropzone';
 import { mergePDFs } from '../utils/pdfActions';
+import { trackDownload } from '../utils/analytics';
 import { saveDownloadRecord } from '../utils/downloadManager';
 import './Merge.css';
 
@@ -62,7 +63,12 @@ export default function Merge() {
         const fileName = 'merged-document.pdf';
         const sizeStr = (mergedBlob.size / 1024 / 1024).toFixed(2) + ' MB';
 
-        await saveDownloadRecord(fileName, sizeStr, mergedBlob);
+        trackDownload('Merge', {
+            fileCount: files.length,
+            size: sizeStr
+        });
+
+        await saveDownloadRecord(fileName, sizeStr, mergedBlob, 'Merge');
 
         // Trigger download
         const a = document.createElement('a');

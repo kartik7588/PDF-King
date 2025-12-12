@@ -8,6 +8,7 @@ import {
     Trash
 } from 'lucide-react';
 import { getDownloadHistory, deleteDownloadRecord, clearDownloadHistory } from '../utils/downloadManager';
+import { trackDownload } from '../utils/analytics';
 import './DownloadedFiles.css';
 
 export default function DownloadedFiles() {
@@ -29,6 +30,12 @@ export default function DownloadedFiles() {
         if (!file.blob) return;
 
         const url = URL.createObjectURL(file.blob);
+
+        trackDownload('History', {
+            fileName: file.fileName,
+            size: file.size
+        });
+
         const a = document.createElement('a');
         a.href = url;
         a.download = file.fileName;
@@ -86,6 +93,7 @@ export default function DownloadedFiles() {
                                 <thead>
                                     <tr>
                                         <th>File Name</th>
+                                        <th>Source</th>
                                         <th>Size</th>
                                         <th>Date</th>
                                         <th>Actions</th>
@@ -103,6 +111,11 @@ export default function DownloadedFiles() {
                                                     <FileText size={18} />
                                                     {file.fileName}
                                                 </div>
+                                            </td>
+                                            <td>
+                                                <span className={`badge badge-${(file.source || 'unknown').toLowerCase()}`}>
+                                                    {file.source || 'Unknown'}
+                                                </span>
                                             </td>
                                             <td>{file.size}</td>
                                             <td>{formatDate(file.date)}</td>

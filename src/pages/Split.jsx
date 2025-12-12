@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Scissors, Download, FileText } from 'lucide-react';
 import Dropzone from '../components/Dropzone';
 import { splitPDF } from '../utils/pdfActions';
+import { trackDownload } from '../utils/analytics';
+import { saveDownloadRecord } from '../utils/downloadManager';
 import { PDFDocument } from 'pdf-lib';
 // Note: importing PDFDocument here just to get page count if needed, or we can move that to utils.
 // Actually, let's put "getPageCount" in utils to keep it clean, but for speed I'll do it here inline or import pdf-lib.
@@ -13,6 +15,7 @@ export default function Split() {
     const [range, setRange] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState(null);
+    const [splitBlob, setSplitBlob] = useState(null);
 
     const handleFileDropped = async (files) => {
         if (files.length > 0) {
@@ -68,12 +71,37 @@ export default function Split() {
             const splitBytes = await splitPDF(file, pageIndices);
             const blob = new Blob([splitBytes], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
+            setSplitBlob(blob);
             setDownloadUrl(url);
         } catch (error) {
             alert(error.message);
         } finally {
             setIsProcessing(false);
         }
+    };
+
+    const handleDownload = async () => {
+        if (!splitBlob) return;
+        const fileName = `split-${file.name}`;
+        const sizeStr = (splitBlob.size / 1024 / 1024).toFixed(2) + ' MB';
+
+        // Track
+        trackDownload('Split', {
+            originalPages: pageCount,
+            range: range,
+            size: sizeStr
+        });
+
+        // Save History
+        await saveDownloadRecord(fileName, sizeStr, splitBlob, 'Split');
+
+        // Download
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     return (
@@ -122,14 +150,13 @@ export default function Split() {
 
                         <div className="merge-actions">
                             {downloadUrl ? (
-                                <a
-                                    href={downloadUrl}
-                                    download={`split-${file.name}`}
+                                <button
+                                    onClick={handleDownload}
                                     className="btn-primary download-btn"
                                 >
                                     <Download size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                                     Download Extracted PDF
-                                </a>
+                                </button>
                             ) : (
                                 <button
                                     className="btn-primary merge-btn"

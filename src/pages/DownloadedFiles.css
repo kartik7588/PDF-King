@@ -7,35 +7,30 @@
     flex-direction: column;
 }
 
-.downloads-header {
-    margin-bottom: 2rem;
-    text-align: center;
-}
-
 .downloads-header h2 {
-    font-size: 2.5rem;
-    background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 0.5rem;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+    font-weight: 700;
 }
 
 .downloads-header p {
     color: #94a3b8;
-    font-size: 1.1rem;
+    margin: 0 0 2rem 0;
 }
 
 .downloads-content {
     flex: 1;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
+    padding: 0;
+    overflow: hidden;
 }
 
 .downloads-toolbar {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: flex-end;
-    margin-bottom: 1rem;
 }
 
 .btn-clear {
@@ -44,17 +39,15 @@
     border: 1px solid rgba(239, 68, 68, 0.2);
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
 .btn-clear:hover {
     background: rgba(239, 68, 68, 0.2);
-    transform: translateY(-1px);
 }
 
 .downloads-table {
@@ -63,93 +56,114 @@
     color: #e2e8f0;
 }
 
-.downloads-table th,
+.downloads-table th {
+    text-align: left;
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+    font-weight: 500;
+    font-size: 0.9rem;
+    position: sticky;
+    top: 0;
+    background: var(--glass-bg);
+    /* Ensure header covers scrolling content */
+    backdrop-filter: blur(10px);
+    z-index: 10;
+}
+
 .downloads-table td {
     padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.downloads-table th {
-    font-weight: 600;
-    color: #94a3b8;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: rgba(0, 0, 0, 0.2);
-}
-
-.downloads-table tr:last-child td {
-    border-bottom: none;
-}
-
-.downloads-table tr:hover {
-    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .file-name-cell {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    font-weight: 500;
-    color: #fff;
+    gap: 10px;
     cursor: pointer;
     transition: color 0.2s;
 }
 
 .file-name-cell:hover {
-    color: #3b82f6;
-    text-decoration: underline;
+    color: var(--color-primary);
 }
 
-.action-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 0.375rem;
-    transition: all 0.2s;
-    color: #94a3b8;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
 }
 
-.action-btn.download:hover {
-    background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+.badge-merge {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
 }
 
-.action-btn.delete:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+.badge-edit {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+}
+
+.badge-compress {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+}
+
+.badge-addmedia {
+    background: rgba(139, 92, 246, 0.2);
+    color: #c4b5fd;
+}
+
+.badge-split {
+    background: rgba(236, 72, 153, 0.2);
+    color: #f9a8d4;
+}
+
+.badge-rotate {
+    background: rgba(14, 165, 233, 0.2);
+    color: #7dd3fc;
 }
 
 .actions-cell {
     display: flex;
-    gap: 0.5rem;
+    gap: 8px;
+}
+
+.action-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.action-btn.delete:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
 }
 
 .loading-state,
 .empty-state {
-    text-align: center;
-    padding: 3rem;
-    color: #94a3b8;
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%;
-}
-
-.empty-state p {
-    margin-top: 1rem;
-    font-size: 1.1rem;
-}
-
-@media (max-width: 768px) {
-    .downloads-table {
-        display: block;
-        overflow-x: auto;
-    }
+    color: #94a3b8;
+    gap: 1rem;
+    min-height: 300px;
 }

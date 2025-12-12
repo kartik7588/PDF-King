@@ -5,6 +5,8 @@ import Dropzone from '../components/Dropzone';
 import ImageDropzone from '../components/ImageDropzone';
 import DraggableImageOverlay from '../components/DraggableImageOverlay';
 import { addImageToPDF } from '../utils/pdfActions';
+import { trackDownload } from '../utils/analytics';
+import { saveDownloadRecord } from '../utils/downloadManager';
 import './AddMedia.css';
 
 export default function AddMedia() {
@@ -18,6 +20,7 @@ export default function AddMedia() {
 
    const [isProcessing, setIsProcessing] = useState(false);
    const [downloadUrl, setDownloadUrl] = useState(null);
+   const [editedBlob, setEditedBlob] = useState(null);
    const containerRef = useRef(null);
 
    const handlePDFDropped = (files) => {
@@ -102,6 +105,7 @@ export default function AddMedia() {
          }
 
          const url = URL.createObjectURL(processedFile);
+         setEditedBlob(processedFile); // processedFile is a File object which works as Blob
          setDownloadUrl(url);
 
       } catch (error) {
@@ -110,6 +114,29 @@ export default function AddMedia() {
       } finally {
          setIsProcessing(false);
       }
+   };
+
+   const handleDownload = async () => {
+      if (!editedBlob) return;
+      const fileName = 'media-added.pdf';
+      const sizeStr = (editedBlob.size / 1024 / 1024).toFixed(2) + ' MB';
+
+      // Track
+      trackDownload('AddMedia', {
+         imagesCount: images.length,
+         size: sizeStr
+      });
+
+      // Save History
+      await saveDownloadRecord(fileName, sizeStr, editedBlob, 'AddMedia');
+
+      // Download
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
    };
 
    return (
@@ -137,7 +164,7 @@ export default function AddMedia() {
 
                   <div className="action-controls">
                      {downloadUrl ? (
-                        <a href={downloadUrl} download="edited.pdf" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}> <Download size={16} /> Download</a>
+                        <button onClick={handleDownload} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}> <Download size={16} /> Download</button>
                      ) : (
                         <button className="btn-primary" onClick={handleSave} disabled={images.length === 0 || isProcessing}>
                            {isProcessing ? 'Saving...' : 'Save PDF'}

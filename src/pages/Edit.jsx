@@ -4,6 +4,7 @@ import { Document, Page } from 'react-pdf';
 import { Type, Save, ChevronLeft, ChevronRight, Download, Plus, X } from 'lucide-react';
 import Dropzone from '../components/Dropzone';
 import { addTextToPDF, saveAnnotationsToPDF } from '../utils/pdfActions';
+import { trackDownload } from '../utils/analytics';
 import { saveDownloadRecord } from '../utils/downloadManager';
 import './Edit.css';
 
@@ -97,7 +98,12 @@ export default function Edit() {
         const fileName = 'edited-text.pdf';
         const sizeStr = (editedBlob.size / 1024 / 1024).toFixed(2) + ' MB';
 
-        await saveDownloadRecord(fileName, sizeStr, editedBlob);
+        trackDownload('Edit', {
+            annotationsCount: texts.length,
+            size: sizeStr
+        });
+
+        await saveDownloadRecord(fileName, sizeStr, editedBlob, 'Edit');
 
         // Trigger download
         const a = document.createElement('a');
