@@ -148,51 +148,52 @@ export default function Edit() {
         setIsProcessing(true);
         try {
             let pdfBytes;
+            // 1. Generate Edited PDF Bytes
             if (texts.length === 0) {
-                if (file instanceof Blob || file instanceof File) {
-                    pdfBytes = await file.arrayBuffer();
+                if (file instanceof Uint8Array || file instanceof ArrayBuffer) {
+                    pdfBytes = file;
                 } else {
-                    // Should act on bytes if we have them, but we store File object in state
                     pdfBytes = await file.arrayBuffer();
                 }
             } else {
                 const currentScale = scale || 1;
                 // Note: We don't pass zoom to saveEditorChanges because coordinates are already in unzoomed space
+                // We use the raw 'scale' (Render:Original ratio) to map back to PDF points
                 const pdfBytesUint8 = await saveEditorChanges(file, texts, currentScale);
                 pdfBytes = pdfBytesUint8.buffer;
             }
 
+            // 2. Create Blob from Bytes
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
 
-            // 1. Push current state to History (before change)
+            // 3. Update Download Link & State
+            // Push current state to History (before change)
             setHistory(prev => [...prev, file]);
 
-            // 2. Update File State to new PDF (Baked changes)
-            const newFile = new File([blob], file.name, { type: 'application/pdf' });
+            // Update File State to new PDF (Baked changes) allows continuous editing
+            const newFile = new File([blob], file.name || "edited.pdf", { type: 'application/pdf' });
             setFile(newFile);
 
-            // 3. Clear Annotations (They are baked now)
+            // Clear Annotations (They are burned in now)
             setTexts([]);
 
-            // 4. Update Download Link
+            // Create URL for download
+            if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+            const url = URL.createObjectURL(blob);
             setEditedBlob(blob);
             setDownloadUrl(url);
 
-            // 5. Auto-download after save (as per user requirement)
-            const fileName = file.name || 'edited-text.pdf';
+            // 4. Trigger Download directly
+            const fileName = (file.name || 'document').replace('.pdf', '') + '_edited.pdf';
             const sizeStr = (blob.size / 1024 / 1024).toFixed(2) + ' MB';
 
-            // Track analytics
             trackDownload('Edit', {
                 annotationsCount: texts.length,
                 size: sizeStr
             });
 
-            // Save to download history
             await saveDownloadRecord(fileName, sizeStr, blob, 'Edit');
 
-            // Trigger download
             const a = document.createElement('a');
             a.href = url;
             a.download = fileName;

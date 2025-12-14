@@ -74,10 +74,12 @@ const validateAnnotation = (ann, pageCount, scale) => {
  * @returns {Promise<Uint8Array>} - Modified PDF bytes
  */
 export const saveEditorChanges = async (fileInput, annotations, scaleMapOrSingle) => {
-    const { PDFDocument } = await import('pdf-lib');
+    const { PDFDocument, rgb } = await import('pdf-lib');
     let existingPdfBytes;
 
     if (fileInput instanceof Uint8Array) {
+        existingPdfBytes = fileInput;
+    } else if (fileInput instanceof ArrayBuffer) {
         existingPdfBytes = fileInput;
     } else {
         existingPdfBytes = await fileInput.arrayBuffer();
@@ -87,63 +89,51 @@ export const saveEditorChanges = async (fileInput, annotations, scaleMapOrSingle
     const pages = pdfDoc.getPages();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    // Handle both scaleMap object and single scale number (backward compatibility)
+    // Normalize scale helper
     const getScale = (pageIndex) => {
         if (typeof scaleMapOrSingle === 'object' && scaleMapOrSingle !== null) {
-            const scale = scaleMapOrSingle[pageIndex];
-            if (isValidNumber(scale) && scale > 0) return scale;
-            console.warn(`Missing scale for page ${pageIndex}, using default 1`);
-            return 1;
+            return scaleMapOrSingle[pageIndex] || 1;
         }
-        // Single scale for all pages (legacy)
-        return isValidNumber(scaleMapOrSingle) && scaleMapOrSingle > 0 ? scaleMapOrSingle : 1;
+        return Number(scaleMapOrSingle) || 1;
     };
 
     let processedCount = 0;
-    let skippedCount = 0;
 
     for (const ann of annotations) {
-        // Get scale for this annotation's page
-        const pageScale = getScale(ann.page);
-
-        // Validate annotation
-        const errors = validateAnnotation(ann, pages.length, pageScale);
-        if (errors.length > 0) {
-            console.error(`Skipping invalid annotation:`, errors, ann);
-            skippedCount++;
-            continue;
-        }
-
         try {
-            const page = pages[ann.page];
-            const { height: pageHeight } = page.getSize();
-
-            // Sanitize annotation values (clamp to safe ranges)
-            const safeX = Math.max(0, ann.x);
-            const safeY = Math.max(0, ann.y);
-            const safeWidth = Math.max(1, ann.width);
-            const safeHeight = Math.max(1, ann.height);
-            const safeSize = Math.max(1, ann.size);
-
-            // Convert to PDF coordinates using THIS PAGE's scale
-            const { pdfX, pdfY: pdfTopY } = toPdfLibCoords(safeX, safeY, pageHeight, pageScale);
-            const pdfBoxWidth = safeWidth / pageScale;
-            const pdfBoxHeight = safeHeight / pageScale;
-            const pdfBottomY = pdfTopY - pdfBoxHeight;
-            const fontSizePdf = safeSize / pageScale;
-
-            // Final validation before drawing
-            if (!isValidNumber(pdfX) || !isValidNumber(pdfBottomY) ||
-                !isValidNumber(pdfBoxWidth) || !isValidNumber(pdfBoxHeight) ||
-                !isValidNumber(fontSizePdf)) {
-                console.error(`Computed invalid PDF coords, skipping annotation:`, {
-                    pdfX, pdfBottomY, pdfBoxWidth, pdfBoxHeight, fontSizePdf
-                });
-                skippedCount++;
+            // Guard: Page out of bounds
+            if (ann.page < 0 || ann.page >= pages.length) {
+                console.warn(`Annotation on page ${ann.page} out of bounds (Total: ${pages.length})`);
                 continue;
             }
 
-            // Draw white rectangle (cover)
+            const page = pages[ann.page];
+            const { height: pageHeight } = page.getSize();
+            const pageScale = getScale(ann.page);
+
+            // Coordinates
+            // Ensure inputs are numbers
+            const x = Number(ann.x) || 0;
+            const y = Number(ann.y) || 0;
+            const width = Number(ann.width) || 100;
+            const height = Number(ann.height) || 20;
+            const size = Number(ann.size) || 12;
+
+            // Convert to PDF Coords
+            const { pdfX, pdfY: pdfTopY } = toPdfLibCoords(x, y, pageHeight, pageScale);
+
+            // Allow for slight error margin or "NaN" recovery
+            if (isNaN(pdfX) || isNaN(pdfTopY)) {
+                console.error("Computed NaN coordinates", { x, y, pageHeight, pageScale });
+                continue;
+            }
+
+            const pdfBoxWidth = width / pageScale;
+            const pdfBoxHeight = height / pageScale;
+            const pdfBottomY = pdfTopY - pdfBoxHeight;
+            const fontSizePdf = size / pageScale;
+
+            // Draw Whiteout (Background)
             page.drawRectangle({
                 x: pdfX - 1,
                 y: pdfBottomY - 1,
@@ -152,28 +142,34 @@ export const saveEditorChanges = async (fileInput, annotations, scaleMapOrSingle
                 color: rgb(1, 1, 1),
             });
 
-            // Draw replacement text
-            page.drawText(ann.text, {
+            // Handle Color - ensure 0-1 range if RGB is provided as 0-255? 
+            // Assuming the app provides 0-255 logic elsewhere? 
+            // Actually Edit.jsx init is {r:0, g:0, b:0}.
+            // DraggableTextOverlay doesn't seem to have a generic color picker yet that returns 0-255.
+            // But let's be safe. If > 1, assume 8-bit.
+            let r = ann.color?.r || 0;
+            let g = ann.color?.g || 0;
+            let b = ann.color?.b || 0;
+            if (r > 1) r /= 255;
+            if (g > 1) g /= 255;
+            if (b > 1) b /= 255;
+
+            // Draw Text
+            page.drawText(ann.text || "", {
                 x: pdfX,
-                y: pdfBottomY + (pdfBoxHeight * 0.2),
+                y: pdfBottomY + (pdfBoxHeight * 0.2), // Vertical alignment adjustment
                 size: fontSizePdf,
                 font: font,
-                color: rgb(
-                    ann.color?.r || 0,
-                    ann.color?.g || 0,
-                    ann.color?.b || 0
-                ),
+                color: rgb(r, g, b),
                 maxWidth: pdfBoxWidth
             });
 
             processedCount++;
         } catch (error) {
-            console.error(`Error processing annotation:`, error, ann);
-            skippedCount++;
+            console.error("Failed to save annotation:", error, ann);
         }
     }
 
-    console.log(`Save complete: ${processedCount} processed, ${skippedCount} skipped`);
-
+    console.log(`Saved PDF with ${processedCount} edits.`);
     return await pdfDoc.save();
 };
