@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Document, Page } from 'react-pdf';
 
-import { Type, Save, ChevronLeft, ChevronRight, Download, Plus, X } from 'lucide-react';
+import { Type, Save, ChevronLeft, ChevronRight, Download, Plus, X, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import Dropzone from '../components/Dropzone';
 import { addTextToPDF, saveAnnotationsToPDF } from '../utils/pdfActions';
 import { saveEditorChanges } from '../utils/editorUtils';
 import { trackDownload } from '../utils/analytics';
 import { saveDownloadRecord } from '../utils/downloadManager';
+import { getOptimalPDFWidth, isMobileDevice } from '../utils/deviceUtils';
 import './Edit.css';
 
 // Separate component to handle Ref for Draggable (Fixes React 18 StrictMode crash)
@@ -21,6 +22,12 @@ export default function Edit() {
     const [editedBlob, setEditedBlob] = useState(null);
     const [scale, setScale] = useState(1); // Track scale
 
+    // Zoom and Pan State
+    const [zoom, setZoom] = useState(1);
+    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+    const [renderWidth, setRenderWidth] = useState(600); // Device-aware PDF width
+    const [isDraggingOverlay, setIsDraggingOverlay] = useState(false); // Track if dragging annotation
+
     // Undo History System
     const [history, setHistory] = useState([]); // Array of Blobs/Files
 
@@ -28,6 +35,10 @@ export default function Edit() {
     const [texts, setTexts] = useState([]);
 
     const containerRef = useRef(null);
+    const canvasWrapperRef = useRef(null);
+
+    // Touch gesture tracking
+    const touchStartRef = useRef({ distance: 0, center: { x: 0, y: 0 }, zoom: 1, pan: { x: 0, y: 0 } });
 
     const handleFileDropped = (files) => {
         const selected = files[0];
@@ -85,8 +96,11 @@ export default function Edit() {
         const containerRect = containerRef.current.getBoundingClientRect();
         const spanRect = target.getBoundingClientRect();
 
-        const relativeX = spanRect.left - containerRect.left;
-        const relativeY = spanRect.top - containerRect.top;
+        // Account for zoom and pan when calculating position
+        const relativeX = (spanRect.left - containerRect.left - panOffset.x) / zoom;
+        const relativeY = (spanRect.top - containerRect.top - panOffset.y) / zoom;
+        const width = spanRect.width / zoom;
+        const height = spanRect.height / zoom;
 
         // Create new replacement annotation
         const newText = {
@@ -95,15 +109,15 @@ export default function Edit() {
             originalText: target.textContent,
             x: relativeX,
             y: relativeY,
-            width: spanRect.width,
-            height: spanRect.height,
+            width: width,
+            height: height,
             cover: { // Permanent cover position
                 x: relativeX,
                 y: relativeY,
-                width: spanRect.width,
-                height: spanRect.height
+                width: width,
+                height: height
             },
-            size: parseFloat(window.getComputedStyle(target).fontSize),
+            size: parseFloat(window.getComputedStyle(target).fontSize) / zoom,
             color: { r: 0, g: 0, b: 0 },
             isEditing: true,
             page: currPage - 1,
@@ -143,6 +157,7 @@ export default function Edit() {
                 }
             } else {
                 const currentScale = scale || 1;
+                // Note: We don't pass zoom to saveEditorChanges because coordinates are already in unzoomed space
                 const pdfBytesUint8 = await saveEditorChanges(file, texts, currentScale);
                 pdfBytes = pdfBytesUint8.buffer;
             }
@@ -228,6 +243,128 @@ export default function Edit() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [file, isProcessing, handleSave]);
 
+    // Calculate optimal render width on mount and resize
+    useEffect(() => {
+        const updateRenderWidth = () => {
+            if (canvasWrapperRef.current) {
+                const containerWidth = canvasWrapperRef.current.clientWidth;
+                const optimalWidth = getOptimalPDFWidth(containerWidth);
+                setRenderWidth(optimalWidth);
+            } else {
+                // Fallback if container not ready
+                const optimalWidth = getOptimalPDFWidth(window.innerWidth);
+                setRenderWidth(optimalWidth);
+            }
+        };
+
+        updateRenderWidth();
+        window.addEventListener('resize', updateRenderWidth);
+        return () => window.removeEventListener('resize', updateRenderWidth);
+    }, []);
+
+    // Zoom Controls
+    const handleZoomIn = () => {
+        setZoom(prev => Math.min(prev + 0.25, 3)); // Max 3x zoom
+    };
+
+    const handleZoomOut = () => {
+        setZoom(prev => Math.max(prev - 0.25, 0.5)); // Min 0.5x zoom
+    };
+
+    const handleFitToScreen = () => {
+        setZoom(1);
+        setPanOffset({ x: 0, y: 0 });
+    };
+
+    // Wheel zoom (Ctrl/Cmd + Wheel)
+    useEffect(() => {
+        const handleWheel = (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                setZoom(prev => Math.max(0.5, Math.min(3, prev + delta)));
+            }
+        };
+
+        const wrapper = canvasWrapperRef.current;
+        if (wrapper) {
+            wrapper.addEventListener('wheel', handleWheel, { passive: false });
+            return () => wrapper.removeEventListener('wheel', handleWheel);
+        }
+    }, []);
+
+    // Touch gesture handlers for pinch-zoom and pan
+    useEffect(() => {
+        const wrapper = canvasWrapperRef.current;
+        if (!wrapper) return;
+
+        const getTouchDistance = (touch1, touch2) => {
+            const dx = touch1.clientX - touch2.clientX;
+            const dy = touch1.clientY - touch2.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        };
+
+        const getTouchCenter = (touch1, touch2) => {
+            return {
+                x: (touch1.clientX + touch2.clientX) / 2,
+                y: (touch1.clientY + touch2.clientY) / 2
+            };
+        };
+
+        const handleTouchStart = (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const distance = getTouchDistance(e.touches[0], e.touches[1]);
+                const center = getTouchCenter(e.touches[0], e.touches[1]);
+                touchStartRef.current = {
+                    distance,
+                    center,
+                    zoom,
+                    pan: { ...panOffset }
+                };
+            }
+        };
+
+        const handleTouchMove = (e) => {
+            if (e.touches.length === 2 && touchStartRef.current.distance > 0) {
+                e.preventDefault();
+
+                const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
+                const currentCenter = getTouchCenter(e.touches[0], e.touches[1]);
+
+                // Calculate zoom
+                const zoomDelta = currentDistance / touchStartRef.current.distance;
+                const newZoom = Math.max(0.5, Math.min(3, touchStartRef.current.zoom * zoomDelta));
+
+                // Calculate pan
+                const panDeltaX = currentCenter.x - touchStartRef.current.center.x;
+                const panDeltaY = currentCenter.y - touchStartRef.current.center.y;
+
+                setZoom(newZoom);
+                setPanOffset({
+                    x: touchStartRef.current.pan.x + panDeltaX,
+                    y: touchStartRef.current.pan.y + panDeltaY
+                });
+            }
+        };
+
+        const handleTouchEnd = (e) => {
+            if (e.touches.length < 2) {
+                touchStartRef.current = { distance: 0, center: { x: 0, y: 0 }, zoom: 1, pan: { x: 0, y: 0 } };
+            }
+        };
+
+        wrapper.addEventListener('touchstart', handleTouchStart, { passive: false });
+        wrapper.addEventListener('touchmove', handleTouchMove, { passive: false });
+        wrapper.addEventListener('touchend', handleTouchEnd);
+
+        return () => {
+            wrapper.removeEventListener('touchstart', handleTouchStart);
+            wrapper.removeEventListener('touchmove', handleTouchMove);
+            wrapper.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, [zoom, panOffset]);
+
     return (
         <div className="edit-container">
             <div className="merge-header">
@@ -294,84 +431,130 @@ export default function Edit() {
                         </div>
                     </div>
 
-                    <div className="canvas-wrapper">
+                    <div className="canvas-wrapper" ref={canvasWrapperRef} style={{
+                        overflow: isMobileDevice() ? 'auto' : 'visible',
+                        maxHeight: isMobileDevice() ? '70vh' : 'none',
+                        WebkitOverflowScrolling: 'touch',
+                        overscrollBehavior: isDraggingOverlay ? 'none' : 'auto'
+                    }}>
                         <div
-                            className="page-container"
-                            ref={containerRef}
-                            style={{ position: 'relative', display: 'inline-block' }}
-                            onDoubleClick={handleDoubleClick}
+                            className="zoom-container"
+                            style={{
+                                transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
+                                transformOrigin: 'top left',
+                                transition: 'transform 0.1s ease-out',
+                                display: 'inline-block'
+                            }}
                         >
-                            <Document
-                                file={file}
-                                onLoadSuccess={({ numPages, width, originalWidth }) => {
-                                    setNumPages(numPages);
-                                    if (width && originalWidth) {
-                                        setScale(width / originalWidth);
-                                    }
-                                }}
-                                loading="Loading PDF..."
+                            <div
+                                className="page-container"
+                                ref={containerRef}
+                                style={{ position: 'relative', display: 'inline-block' }}
+                                onDoubleClick={handleDoubleClick}
                             >
-                                <Page
-                                    pageNumber={currPage}
-                                    width={600}
-                                    renderTextLayer={true}
-                                    renderAnnotationLayer={false}
-                                />
-                            </Document>
-
-                            {texts.filter(t => t.page === (currPage - 1)).map((textItem) => (
-                                <React.Fragment key={textItem.id}>
-                                    {/* 1a. Static Cover at Original Position (Hides Original Text) */}
-                                    {textItem.isReplacement && textItem.cover && (
-                                        <div
-                                            className="whiteout-cover-static"
-                                            style={{
-                                                position: 'absolute',
-                                                left: textItem.cover.x,
-                                                top: textItem.cover.y,
-                                                width: textItem.cover.width,
-                                                height: textItem.cover.height,
-                                                backgroundColor: 'white',
-                                                zIndex: 15,
-                                                pointerEvents: 'none'
-                                            }}
-                                        />
-                                    )}
-
-                                    {/* 1b. Dynamic Cover (Moves with Overlay - prevents canvas showing through) */}
-                                    {textItem.isReplacement && (
-                                        <div
-                                            className="whiteout-cover-dynamic"
-                                            style={{
-                                                position: 'absolute',
-                                                left: textItem.x,
-                                                top: textItem.y,
-                                                width: textItem.width || textItem.cover?.width || 100,
-                                                height: textItem.height || textItem.cover?.height || 20,
-                                                backgroundColor: 'white',
-                                                zIndex: 15,
-                                                pointerEvents: 'none'
-                                            }}
-                                        />
-                                    )}
-
-                                    {/* 2. Editable Overlay */}
-                                    <DraggableTextOverlay
-                                        id={textItem.id}
-                                        text={textItem.text}
-                                        x={textItem.x}
-                                        y={textItem.y}
-                                        fontSize={textItem.size}
-                                        color={textItem.color}
-                                        isEditing={textItem.isEditing}
-                                        onUpdatePosition={updateTextPos}
-                                        onUpdateText={updateTextContent}
-                                        onUpdateSize={updateTextSize}
-                                        onToggleEdit={toggleTextEdit}
-                                        onRemove={removeText}
+                                <Document
+                                    file={file}
+                                    onLoadSuccess={({ numPages, width, originalWidth }) => {
+                                        setNumPages(numPages);
+                                        if (width && originalWidth) {
+                                            setScale(width / originalWidth);
+                                        }
+                                    }}
+                                    loading="Loading PDF..."
+                                >
+                                    <Page
+                                        pageNumber={currPage}
+                                        width={renderWidth}
+                                        renderTextLayer={true}
+                                        renderAnnotationLayer={false}
                                     />
-                                </React.Fragment>
-                            ))}
+                                </Document>
+
+                                {texts.filter(t => t.page === (currPage - 1)).map((textItem) => (
+                                    <React.Fragment key={textItem.id}>
+                                        {/* 1a. Static Cover at Original Position (Hides Original Text) */}
+                                        {textItem.isReplacement && textItem.cover && (
+                                            <div
+                                                className="whiteout-cover-static"
+                                                style={{
+                                                    position: 'absolute',
+                                                    left: textItem.cover.x,
+                                                    top: textItem.cover.y,
+                                                    width: textItem.cover.width,
+                                                    height: textItem.cover.height,
+                                                    backgroundColor: 'white',
+                                                    zIndex: 15,
+                                                    pointerEvents: 'none'
+                                                }}
+                                            />
+                                        )}
+
+                                        {/* 1b. Dynamic Cover (Moves with Overlay - prevents canvas showing through) */}
+                                        {textItem.isReplacement && (
+                                            <div
+                                                className="whiteout-cover-dynamic"
+                                                style={{
+                                                    position: 'absolute',
+                                                    left: textItem.x,
+                                                    top: textItem.y,
+                                                    width: textItem.width || textItem.cover?.width || 100,
+                                                    height: textItem.height || textItem.cover?.height || 20,
+                                                    backgroundColor: 'white',
+                                                    zIndex: 15,
+                                                    pointerEvents: 'none'
+                                                }}
+                                            />
+                                        )}
+
+                                        {/* 2. Editable Overlay */}
+                                        <DraggableTextOverlay
+                                            id={textItem.id}
+                                            text={textItem.text}
+                                            x={textItem.x}
+                                            y={textItem.y}
+                                            fontSize={textItem.size}
+                                            color={textItem.color}
+                                            isEditing={textItem.isEditing}
+                                            zoom={zoom}
+                                            onUpdatePosition={updateTextPos}
+                                            onUpdateText={updateTextContent}
+                                            onUpdateSize={updateTextSize}
+                                            onToggleEdit={toggleTextEdit}
+                                            onRemove={removeText}
+                                            onDragStart={() => setIsDraggingOverlay(true)}
+                                            onDragEnd={() => setIsDraggingOverlay(false)}
+                                        />
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Zoom Controls */}
+                        <div className="zoom-controls">
+                            <button
+                                className="zoom-btn"
+                                onClick={handleZoomOut}
+                                disabled={zoom <= 0.5}
+                                title="Zoom Out"
+                            >
+                                <ZoomOut size={18} />
+                            </button>
+                            <span className="zoom-level">{Math.round(zoom * 100)}%</span>
+                            <button
+                                className="zoom-btn"
+                                onClick={handleZoomIn}
+                                disabled={zoom >= 3}
+                                title="Zoom In"
+                            >
+                                <ZoomIn size={18} />
+                            </button>
+                            <button
+                                className="zoom-btn"
+                                onClick={handleFitToScreen}
+                                title="Fit to Screen"
+                            >
+                                <Maximize2 size={18} />
+                            </button>
                         </div>
                     </div>
                 </div>

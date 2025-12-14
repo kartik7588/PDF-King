@@ -13,17 +13,33 @@ const isValidNumber = (val) => typeof val === 'number' && isFinite(val);
  * @param {number} y - Y coordinate in pixels 
  * @param {number} pageHeight - Height of the page in PDF points
  * @param {number} scale - Current rendering scale (Canvas px / PDF points)
+ * @param {number} zoom - Current zoom level (default 1.0)
+ * @param {Object} panOffset - Current pan offset { x, y } (default { x: 0, y: 0 })
  */
-export const toPdfLibCoords = (x, y, pageHeight, scale) => {
+export const toPdfLibCoords = (x, y, pageHeight, scale, zoom = 1, panOffset = { x: 0, y: 0 }) => {
     // Guard against invalid inputs
     if (!isValidNumber(x) || !isValidNumber(y) || !isValidNumber(pageHeight) || !isValidNumber(scale) || scale === 0) {
         console.error('Invalid coords:', { x, y, pageHeight, scale });
         return { pdfX: 0, pdfY: 0 };
     }
 
+    // Validate zoom
+    if (!isValidNumber(zoom) || zoom <= 0) {
+        console.warn('Invalid zoom, using 1.0:', zoom);
+        zoom = 1;
+    }
+
+    // Validate panOffset
+    const safePanX = isValidNumber(panOffset?.x) ? panOffset.x : 0;
+    const safePanY = isValidNumber(panOffset?.y) ? panOffset.y : 0;
+
+    // Account for zoom and pan when converting coordinates
+    // First subtract pan offset, then divide by (scale * zoom)
+    const effectiveScale = scale * zoom;
+
     return {
-        pdfX: x / scale,
-        pdfY: pageHeight - (y / scale)
+        pdfX: (x - safePanX) / effectiveScale,
+        pdfY: pageHeight - ((y - safePanY) / effectiveScale)
     };
 };
 

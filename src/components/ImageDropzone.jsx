@@ -39,12 +39,7 @@ export default function ImageDropzone({ onFilesDropped, multiple = false }) {
 
     return (
         <div
-            className={clsx("dropzone", { dragging: isDragging })}
-            style={{
-                minHeight: '120px',
-                border: '2px dashed rgba(255,255,255,0.2)',
-                background: 'rgba(255,255,255,0.05)'
-            }}
+            className={clsx("dropzone", "image-dropzone", { dragging: isDragging })}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -62,11 +57,11 @@ export default function ImageDropzone({ onFilesDropped, multiple = false }) {
                 style={{ display: 'none' }}
             />
 
-            <div className="dropzone-content" style={{ gap: '0.5rem' }}>
-                <div className="icon-circle" style={{ width: '40px', height: '40px' }}>
-                    <ImagePlus size={20} className="upload-icon" />
+            <div className="dropzone-content">
+                <div className="icon-circle">
+                    <ImagePlus size={18} className="upload-icon" />
                 </div>
-                <h3 style={{ fontSize: '0.9rem', margin: 0 }}>Drop images here</h3>
+                <h3>Drop images</h3>
             </div>
         </div>
     );

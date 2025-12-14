@@ -16,6 +16,22 @@
     margin: 0 auto;
 }
 
+.canvas-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    min-height: 400px;
+}
+
+.zoom-container {
+    will-change: transform;
+    touch-action: none;
+}
+
 .page-container {
     position: relative;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
@@ -67,4 +83,92 @@
     justify-content: center;
     cursor: pointer;
     z-index: 10;
+}
+
+/* Zoom Controls */
+.zoom-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+}
+
+.zoom-btn {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.zoom-btn:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+    transform: scale(1.05);
+}
+
+.zoom-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.zoom-level {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    min-width: 50px;
+    text-align: center;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .canvas-wrapper {
+        padding: 10px;
+    }
+
+    .zoom-controls {
+        bottom: 10px;
+        right: 10px;
+        padding: 6px 10px;
+        gap: 6px;
+    }
+
+    .zoom-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .zoom-level {
+        font-size: 12px;
+        min-width: 45px;
+    }
+
+    .toolbar {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .page-controls,
+    .tool-controls,
+    .action-controls {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .page-container {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
 }

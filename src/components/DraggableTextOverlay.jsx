@@ -9,11 +9,14 @@ const DraggableTextOverlay = ({
     fontSize,
     color,
     isEditing,
+    zoom = 1,
     onUpdatePosition,
     onUpdateText,
     onUpdateSize,
     onToggleEdit,
-    onRemove
+    onRemove,
+    onDragStart,
+    onDragEnd
 }) => {
     const [isDragging, setIsDragging] = useState(false);
     const dragStartRef = useRef({ x: 0, y: 0 });
@@ -38,6 +41,9 @@ const DraggableTextOverlay = ({
         dragStartRef.current = { x: e.clientX, y: e.clientY };
         initialPosRef.current = { x, y };
         e.target.setPointerCapture(e.pointerId);
+
+        // Notify parent to lock scroll
+        if (onDragStart) onDragStart();
     };
 
     const handlePointerMove = (e) => {
@@ -45,8 +51,9 @@ const DraggableTextOverlay = ({
         e.stopPropagation();
         e.preventDefault();
 
-        const dx = e.clientX - dragStartRef.current.x;
-        const dy = e.clientY - dragStartRef.current.y;
+        // Account for zoom when calculating delta
+        const dx = (e.clientX - dragStartRef.current.x) / zoom;
+        const dy = (e.clientY - dragStartRef.current.y) / zoom;
 
         onUpdatePosition(id, initialPosRef.current.x + dx, initialPosRef.current.y + dy);
     };
@@ -56,6 +63,9 @@ const DraggableTextOverlay = ({
             e.stopPropagation();
             setIsDragging(false);
             e.target.releasePointerCapture(e.pointerId);
+
+            // Notify parent to unlock scroll
+            if (onDragEnd) onDragEnd();
         }
     };
 
@@ -83,24 +93,30 @@ const DraggableTextOverlay = ({
         const startY = e.clientY;
         const startSize = fontSize;
 
+        // Notify parent to lock scroll
+        if (onDragStart) onDragStart();
+
         const onPointerMove = (moveEvent) => {
             moveEvent.preventDefault();
             moveEvent.stopPropagation();
 
-            // Simple logic: Dragging down increases size, up decreases.
-            // Sensitivity: 1px drag = 0.5px font size change
-            const deltaY = moveEvent.clientY - startY;
+            // Account for zoom: Dragging down increases size, up decreases.
+            // Sensitivity: 1px drag = 0.5px font size change, adjusted for zoom
+            const deltaY = (moveEvent.clientY - startY) / zoom;
             const newSize = Math.max(8, startSize + (deltaY * 0.5)); // Min 8px
 
             // Cap max size if needed, e.g. 100
             const cappedSize = Math.min(100, newSize);
 
-            onUpdateSize(id, cappedSize); // Assume parent passes onUpdateSize
+            onUpdateSize(id, cappedSize);
         };
 
         const onPointerUp = () => {
             window.removeEventListener('pointermove', onPointerMove);
             window.removeEventListener('pointerup', onPointerUp);
+
+            // Notify parent to unlock scroll
+            if (onDragEnd) onDragEnd();
         };
 
         window.addEventListener('pointermove', onPointerMove);
@@ -197,13 +213,14 @@ const DraggableTextOverlay = ({
                             position: 'absolute',
                             bottom: -5,
                             right: -5,
-                            width: '12px',
-                            height: '12px',
+                            width: window.innerWidth < 768 ? '20px' : '12px',
+                            height: window.innerWidth < 768 ? '20px' : '12px',
                             background: 'white',
                             border: '1px solid #3b82f6',
                             borderRadius: '50%',
                             cursor: 'se-resize',
-                            zIndex: 21
+                            zIndex: 21,
+                            touchAction: 'none'
                         }}
                     />
                 </div>

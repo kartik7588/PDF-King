@@ -162,8 +162,8 @@ export default function AddMedia() {
                      <button disabled={currPage >= numPages} onClick={() => setCurrPage(p => p + 1)}><ChevronRight /></button>
                   </div>
 
-                  {/* Image Dropzone in Sidebar area */}
-                  <div style={{ width: '200px' }}>
+                  {/* Image Dropzone - Compact */}
+                  <div className="image-upload-section">
                      <ImageDropzone onFilesDropped={handleImagesDropped} multiple={true} />
                   </div>
 
