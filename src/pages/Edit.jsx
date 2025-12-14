@@ -346,7 +346,7 @@ export default function Edit() {
             }
         };
 
-        const wrapper = canvasWrapperRef.current;
+        const wrapper =canvasWrapperRef.current;
         if (wrapper) {
             wrapper.addEventListener('wheel', handleWheel, { passive: false });
             return () => wrapper.removeEventListener('wheel', handleWheel);
