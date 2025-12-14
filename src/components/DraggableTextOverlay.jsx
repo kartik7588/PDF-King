@@ -123,6 +123,15 @@ const DraggableTextOverlay = ({
         window.addEventListener('pointerup', onPointerUp);
     };
 
+    // Calculate handle size based on fontSize to satisfy "Scale proportionally" requirement
+    // Clamp between 16px (minimum touchable) and 24px (max standard)
+    // Or allow it to shrink further if text is tiny, but keep a larger invisible hit area?
+    // Requirement says: "When text size decreases, control handles must also decrease."
+    const handleSize = Math.max(12, Math.min(24, fontSize * 1.2));
+
+    // Hit area should remain decent (e.g. at least 24px) via padding/margins if visible size is small,
+    // but for now we follow the visible scaling requested.
+
     return (
         <div
             onPointerDown={handlePointerDown}
@@ -178,7 +187,7 @@ const DraggableTextOverlay = ({
                 >
                     {text}
 
-                    {/* Delete button only visual when hovering/interacting - simplistic approach */}
+                    {/* Delete button */}
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -186,24 +195,25 @@ const DraggableTextOverlay = ({
                         }}
                         style={{
                             position: 'absolute',
-                            top: -10,
-                            right: -10,
+                            top: -handleSize / 2,
+                            right: -handleSize / 2,
                             background: 'red',
                             color: 'white',
                             borderRadius: '50%',
-                            width: '24px', // Larger touch target
-                            height: '24px',
+                            width: `${handleSize}px`,
+                            height: `${handleSize}px`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             border: 'none',
                             cursor: 'pointer',
-                            fontSize: '10px',
-                            zIndex: 21
+                            fontSize: `${Math.max(8, handleSize / 2)}px`,
+                            zIndex: 21,
+                            padding: 0
                         }}
                         className="delete-btn"
                     >
-                        <X size={10} />
+                        <X size={handleSize * 0.6} />
                     </button>
 
                     {/* Resize Handle */}
@@ -211,10 +221,10 @@ const DraggableTextOverlay = ({
                         onPointerDown={handleResizePointerDown}
                         style={{
                             position: 'absolute',
-                            bottom: -10, // Extend further out for easier grabbing
-                            right: -10,
-                            width: '24px', // Larger touch target
-                            height: '24px',
+                            bottom: -handleSize / 2,
+                            right: -handleSize / 2,
+                            width: `${handleSize}px`,
+                            height: `${handleSize}px`,
                             background: 'white',
                             border: '1px solid #3b82f6',
                             borderRadius: '50%',

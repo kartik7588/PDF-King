@@ -108,7 +108,12 @@ export const saveEditorChanges = async (fileInput, annotations, scaleMapOrSingle
             }
 
             const page = pages[ann.page];
-            const { height: pageHeight } = page.getSize();
+
+            // Get CropBox (Visible Area) or MediaBox (Physical Size)
+            // react-pdf renders the CropBox. pdf-lib writes to absolute coordinates.
+            // If CropBox is offset (e.g. x=100, y=100), we must add that to our coordinates.
+            const cropBox = page.getCropBox() || page.getMediaBox();
+            const { x: cropX, y: cropY, height: cropHeight } = cropBox;
             const pageScale = getScale(ann.page);
 
             // Coordinates
@@ -119,12 +124,25 @@ export const saveEditorChanges = async (fileInput, annotations, scaleMapOrSingle
             const height = Number(ann.height) || 20;
             const size = Number(ann.size) || 12;
 
-            // Convert to PDF Coords
-            const { pdfX, pdfY: pdfTopY } = toPdfLibCoords(x, y, pageHeight, pageScale);
+            // Convert to PDF Coords (Normalizing visual input to Points)
+            const normalizedX = x / pageScale;
+            // Visual Y is from top. Distance from BOTTOM of visible area is: height - visualY
+            const normalizedYFromBottom = (cropHeight - (y / pageScale));
+
+            // Apply offsets to map to absolute PDF space
+            const pdfX = cropX + normalizedX;
+            const pdfY = cropY + normalizedYFromBottom;
+            const pdfTopY = pdfY; // This is our anchor (Top-Left of the annotation box in PDF space? No, wait.)
+
+            // toPdfLibCoords logic was: pdfY = pageHeight - (y / scale)
+            // Here pageHeight corresponds to cropHeight. 
+            // And we add cropY offset.
+            // So: pdfTopY = cropY + cropHeight - (y / scale)
+            // Which matches my formula above.
 
             // Allow for slight error margin or "NaN" recovery
             if (isNaN(pdfX) || isNaN(pdfTopY)) {
-                console.error("Computed NaN coordinates", { x, y, pageHeight, pageScale });
+                console.error("Computed NaN coordinates", { x, y, cropHeight, pageScale });
                 continue;
             }
 
@@ -135,10 +153,10 @@ export const saveEditorChanges = async (fileInput, annotations, scaleMapOrSingle
 
             // Draw Whiteout (Background)
             page.drawRectangle({
-                x: pdfX - 1,
-                y: pdfBottomY - 1,
-                width: pdfBoxWidth + 2,
-                height: pdfBoxHeight + 2,
+                x: pdfX, // Removed -1 offset for strictness, user wants EXACT position
+                y: pdfBottomY,
+                width: pdfBoxWidth,
+                height: pdfBoxHeight,
                 color: rgb(1, 1, 1),
             });
 

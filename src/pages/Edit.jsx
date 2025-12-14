@@ -96,9 +96,15 @@ export default function Edit() {
         const containerRect = containerRef.current.getBoundingClientRect();
         const spanRect = target.getBoundingClientRect();
 
-        // Account for zoom and pan when calculating position
-        const relativeX = (spanRect.left - containerRect.left - panOffset.x) / zoom;
-        const relativeY = (spanRect.top - containerRect.top - panOffset.y) / zoom;
+        // Account for zoom when calculating position
+        // Note: containerRect and spanRect are both subject to the same transform (pan/zoom) 
+        // if they are inside the transformed container. 
+        // But here containerRect is likely the wrapper? No, it's containerRef (page-container).
+        // Since containerRef is INSIDE the zoom-container transformation, both rects are transformed.
+        // Thus their difference is the SCALED difference. We only need to un-scale (divide by zoom).
+        // Pan is implicitly handled because it applies to both.
+        const relativeX = (spanRect.left - containerRect.left) / zoom;
+        const relativeY = (spanRect.top - containerRect.top) / zoom;
         const width = spanRect.width / zoom;
         const height = spanRect.height / zoom;
 
@@ -456,11 +462,8 @@ export default function Edit() {
                             >
                                 <Document
                                     file={file}
-                                    onLoadSuccess={({ numPages, width, originalWidth }) => {
+                                    onLoadSuccess={({ numPages }) => {
                                         setNumPages(numPages);
-                                        if (width && originalWidth) {
-                                            setScale(width / originalWidth);
-                                        }
                                     }}
                                     loading="Loading PDF..."
                                 >
@@ -469,6 +472,11 @@ export default function Edit() {
                                         width={renderWidth}
                                         renderTextLayer={true}
                                         renderAnnotationLayer={false}
+                                        onLoadSuccess={({ width, originalWidth }) => {
+                                            if (width && originalWidth) {
+                                                setScale(width / originalWidth);
+                                            }
+                                        }}
                                     />
                                 </Document>
 
