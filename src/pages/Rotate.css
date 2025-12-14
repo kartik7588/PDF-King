@@ -104,10 +104,81 @@
     color: var(--color-primary);
 }
 
-.loading-state,
-.error-state {
-    text-align: center;
-    padding: 2rem;
-    color: var(--color-text-secondary);
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .rotate-workspace {
+        padding: 10px;
+        padding-bottom: 80px;
+        /* Space for sticky bar */
+    }
+
+    .rotate-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+
+    .batch-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .tool-btn {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .desktop-text {
+        display: none;
+    }
+
+    .mobile-text {
+        display: inline;
+    }
+
+    .page-card {
+        width: 160px;
+        /* Smaller cards */
+        height: 220px;
+    }
+
+    .page-overlay {
+        opacity: 1;
+        /* Always show overlay on mobile since no hover */
+        background: rgba(15, 23, 42, 0.8);
+    }
+}
+
+@media (min-width: 769px) {
+    .mobile-text {
+        display: none;
+    }
+
+    .desktop-text {
+        display: inline;
+    }
+}
+
+.mobile-sticky-actions {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: white;
+    padding: 10px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+}
+
+.full-width {
     width: 100%;
+    justify-content: center;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }

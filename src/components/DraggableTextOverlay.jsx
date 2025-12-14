@@ -137,7 +137,7 @@ const DraggableTextOverlay = ({
                 userSelect: 'none',
                 zIndex: 20,
                 minWidth: '20px',
-                touchAction: 'none'
+                touchAction: 'none' // Critical: Disable browser gestures on this element
             }}
         >
             {isEditing ? (
@@ -191,8 +191,8 @@ const DraggableTextOverlay = ({
                             background: 'red',
                             color: 'white',
                             borderRadius: '50%',
-                            width: '18px',
-                            height: '18px',
+                            width: '24px', // Larger touch target
+                            height: '24px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -211,10 +211,10 @@ const DraggableTextOverlay = ({
                         onPointerDown={handleResizePointerDown}
                         style={{
                             position: 'absolute',
-                            bottom: -5,
-                            right: -5,
-                            width: window.innerWidth < 768 ? '20px' : '12px',
-                            height: window.innerWidth < 768 ? '20px' : '12px',
+                            bottom: -10, // Extend further out for easier grabbing
+                            right: -10,
+                            width: '24px', // Larger touch target
+                            height: '24px',
                             background: 'white',
                             border: '1px solid #3b82f6',
                             borderRadius: '50%',

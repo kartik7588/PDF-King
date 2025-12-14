@@ -117,8 +117,8 @@ const DraggableImageOverlay = ({
                             background: 'red',
                             color: 'white',
                             borderRadius: '50%',
-                            width: '20px',
-                            height: '20px',
+                            width: '24px', // Larger touch target
+                            height: '24px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -135,10 +135,10 @@ const DraggableImageOverlay = ({
                         onPointerDown={handleResizePointerDown}
                         style={{
                             position: 'absolute',
-                            bottom: -5,
-                            right: -5,
-                            width: '15px',
-                            height: '15px',
+                            bottom: -10,
+                            right: -10,
+                            width: '24px', // Larger touch target
+                            height: '24px',
                             background: 'white',
                             border: '1px solid #3b82f6',
                             cursor: 'se-resize',

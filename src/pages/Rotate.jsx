@@ -5,6 +5,7 @@ import Dropzone from '../components/Dropzone';
 import { rotatePDF } from '../utils/pdfActions';
 import { trackDownload } from '../utils/analytics';
 import { saveDownloadRecord } from '../utils/downloadManager';
+import { startScrollLock, endScrollLock, isMobileDevice } from '../utils/deviceUtils';
 import './Rotate.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
@@ -109,19 +110,45 @@ export default function Rotate() {
                     <div className="rotate-toolbar">
                         <button className="tool-btn" onClick={() => setFile(null)}>New File</button>
                         <div className="batch-actions">
-                            <button className="tool-btn" onClick={() => rotateAll('cw')}>Rotate All CW <RotateCw size={16} /></button>
-                            <button className="tool-btn" onClick={() => rotateAll('ccw')}>Rotate All CCW <RotateCcw size={16} /></button>
+                            <button className="tool-btn" onClick={() => rotateAll('cw')}>
+                                <span className="desktop-text">Rotate All CW</span>
+                                <span className="mobile-text">All CW</span>
+                                <RotateCw size={16} />
+                            </button>
+                            <button className="tool-btn" onClick={() => rotateAll('ccw')}>
+                                <span className="desktop-text">Rotate All CCW</span>
+                                <span className="mobile-text">All CCW</span>
+                                <RotateCcw size={16} />
+                            </button>
                         </div>
-                        {downloadUrl ? (
-                            <button onClick={handleDownload} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem' }}>
-                                <Download size={16} /> Download
-                            </button>
-                        ) : (
-                            <button className="btn-primary" onClick={handleApply} disabled={isProcessing}>
-                                {isProcessing ? <Loader2 className="animate-spin" /> : 'Apply Rotation'}
-                            </button>
+                        {/* Desktop Logic: Actions in Toolbar */}
+                        {!isMobileDevice() && (
+                            downloadUrl ? (
+                                <button onClick={handleDownload} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem' }}>
+                                    <Download size={16} /> Download
+                                </button>
+                            ) : (
+                                <button className="btn-primary" onClick={handleApply} disabled={isProcessing}>
+                                    {isProcessing ? <Loader2 className="animate-spin" /> : 'Apply Rotation'}
+                                </button>
+                            )
                         )}
                     </div>
+
+                    {/* Mobile Only: Sticky Bottom Bar */}
+                    {isMobileDevice() && (
+                        <div className="mobile-sticky-actions">
+                            {downloadUrl ? (
+                                <button onClick={handleDownload} className="btn-primary full-width">
+                                    <Download size={16} /> Download Result
+                                </button>
+                            ) : (
+                                <button className="btn-primary full-width" onClick={handleApply} disabled={isProcessing}>
+                                    {isProcessing ? <Loader2 className="animate-spin" /> : 'Apply Rotation'}
+                                </button>
+                            )}
+                        </div>
+                    )}
 
                     <div className="pdf-grid">
                         <Document
@@ -138,7 +165,7 @@ export default function Rotate() {
                                     >
                                         <Page
                                             pageNumber={index + 1}
-                                            width={180}
+                                            width={isMobileDevice() ? 140 : 180}
                                             renderTextLayer={false}
                                             renderAnnotationLayer={false}
                                         />

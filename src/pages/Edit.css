@@ -134,41 +134,106 @@
 }
 
 /* Mobile Optimizations */
+
+.badge-count {
+    font-size: 10px;
+    background: #ef4444;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 4px;
+}
+
+/* Mobile Optimizations */
 @media (max-width: 768px) {
+    .edit-container {
+        padding: 0;
+    }
+
     .canvas-wrapper {
         padding: 10px;
+        min-height: 50vh;
+        /* Allow horizontal scrolling if zoomed out, but prevent it if fit to screen? 
+           Actually, rely on touch zoom/pan for navigation within wrapper.
+        */
+        overflow: hidden;
+        /* We handle pan manually via transform */
+        background: var(--color-bg-secondary);
+        /* Dark background for canvas area */
     }
 
     .zoom-controls {
-        bottom: 10px;
-        right: 10px;
-        padding: 6px 10px;
-        gap: 6px;
+        bottom: 80px;
+        /* Move up to avoid conflicts with bottom safe areas or other controls */
+        right: 16px;
+        padding: 8px;
+        gap: 12px;
+        /* Vertical layout on mobile to save width */
+        flex-direction: column;
+        background: var(--color-bg-card);
+        /* Dark glassmorphism */
+        border: 1px solid var(--color-border);
     }
 
     .zoom-btn {
-        width: 32px;
-        height: 32px;
+        width: 44px;
+        /* Larger touch target */
+        height: 44px;
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
     }
 
     .zoom-level {
         font-size: 12px;
-        min-width: 45px;
+        min-width: unset;
+        writing-mode: vertical-lr;
+        /* Vertical text or just icon? Let's hide text on mobile to save space */
+        display: none;
     }
 
     .toolbar {
-        flex-wrap: wrap;
-        gap: 10px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: var(--color-bg-card);
+        /* Dark Theme */
+        backdrop-filter: blur(5px);
+        margin-bottom: 0;
+        border-bottom: 1px solid var(--color-border);
+        border-radius: 0;
+        padding: 12px;
     }
 
-    .page-controls,
-    .tool-controls,
+    .page-controls {
+        justify-content: space-between;
+        width: 100%;
+        order: 1;
+    }
+
+    .tool-controls {
+        width: 100%;
+        justify-content: center;
+        /* Center "Add Text" */
+        order: 2;
+    }
+
     .action-controls {
-        flex-wrap: wrap;
-        gap: 8px;
+        width: 100%;
+        order: 3;
+    }
+
+    .action-controls button {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+        /* Fat button for easy tap */
     }
 
     .page-container {
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        /* Stronger shadow for dark mode */
     }
 }

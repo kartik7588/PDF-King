@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Document, Page } from 'react-pdf';
-import { ImagePlus, Save, ChevronLeft, ChevronRight, Upload, Download, Trash2, Maximize2 } from 'lucide-react';
+import { ImagePlus, Save, ChevronLeft, ChevronRight, Upload, Download, Trash2, Maximize2, ZoomIn, ZoomOut, RefreshCcw } from 'lucide-react';
 import Dropzone from '../components/Dropzone';
 import ImageDropzone from '../components/ImageDropzone';
 import DraggableImageOverlay from '../components/DraggableImageOverlay';
 import { addImageToPDF } from '../utils/pdfActions';
 import { trackDownload } from '../utils/analytics';
 import { saveDownloadRecord } from '../utils/downloadManager';
+import { startScrollLock, endScrollLock, getOptimalPDFWidth, isMobileDevice } from '../utils/deviceUtils';
 import './AddMedia.css';
 
 export default function AddMedia() {
@@ -18,10 +19,111 @@ export default function AddMedia() {
    const [images, setImages] = useState([]);
    const [selectedImageId, setSelectedImageId] = useState(null);
 
+
    const [isProcessing, setIsProcessing] = useState(false);
    const [downloadUrl, setDownloadUrl] = useState(null);
    const [editedBlob, setEditedBlob] = useState(null);
    const containerRef = useRef(null);
+   const canvasWrapperRef = useRef(null);
+
+   // Zoom and Pan State
+   const [zoom, setZoom] = useState(1);
+   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+   const [renderWidth, setRenderWidth] = useState(600);
+   const [isDraggingOverlay, setIsDraggingOverlay] = useState(false);
+
+   // Touch gesture tracking
+   const touchStartRef = useRef({ distance: 0, center: { x: 0, y: 0 }, zoom: 1, pan: { x: 0, y: 0 } });
+
+   useEffect(() => {
+      const updateRenderWidth = () => {
+         if (canvasWrapperRef.current) {
+            const containerWidth = canvasWrapperRef.current.clientWidth;
+            const optimalWidth = getOptimalPDFWidth(containerWidth);
+            setRenderWidth(optimalWidth);
+         } else {
+            setRenderWidth(isMobileDevice() ? window.innerWidth * 0.95 : 600);
+         }
+      };
+
+      const timeout = setTimeout(updateRenderWidth, 100);
+      window.addEventListener('resize', updateRenderWidth);
+      return () => {
+         window.removeEventListener('resize', updateRenderWidth);
+         clearTimeout(timeout);
+      };
+   }, []);
+
+   // Touch gesture handlers (Copied from Edit.jsx for consistency)
+   useEffect(() => {
+      const wrapper = canvasWrapperRef.current;
+      if (!wrapper) return;
+
+      const getTouchDistance = (touch1, touch2) => {
+         const dx = touch1.clientX - touch2.clientX;
+         const dy = touch1.clientY - touch2.clientY;
+         return Math.sqrt(dx * dx + dy * dy);
+      };
+
+      const getTouchCenter = (touch1, touch2) => {
+         return {
+            x: (touch1.clientX + touch2.clientX) / 2,
+            y: (touch1.clientY + touch2.clientY) / 2
+         };
+      };
+
+      const handleTouchStart = (e) => {
+         if (e.touches.length === 2) {
+            e.preventDefault();
+            startScrollLock();
+            const distance = getTouchDistance(e.touches[0], e.touches[1]);
+            const center = getTouchCenter(e.touches[0], e.touches[1]);
+            touchStartRef.current = {
+               distance,
+               center,
+               zoom,
+               pan: { ...panOffset }
+            };
+         }
+      };
+
+      const handleTouchMove = (e) => {
+         if (e.touches.length === 2 && touchStartRef.current.distance > 0) {
+            e.preventDefault();
+            const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
+            const currentCenter = getTouchCenter(e.touches[0], e.touches[1]);
+            const zoomDelta = currentDistance / touchStartRef.current.distance;
+            const newZoom = Math.max(0.5, Math.min(3, touchStartRef.current.zoom * zoomDelta));
+            const panDeltaX = currentCenter.x - touchStartRef.current.center.x;
+            const panDeltaY = currentCenter.y - touchStartRef.current.center.y;
+            setZoom(newZoom);
+            setPanOffset({
+               x: touchStartRef.current.pan.x + panDeltaX,
+               y: touchStartRef.current.pan.y + panDeltaY
+            });
+         }
+      };
+
+      const handleTouchEnd = (e) => {
+         if (e.touches.length < 2) {
+            endScrollLock();
+            touchStartRef.current = { distance: 0, center: { x: 0, y: 0 }, zoom: 1, pan: { x: 0, y: 0 } };
+         }
+      };
+
+      wrapper.addEventListener('touchstart', handleTouchStart, { passive: false });
+      wrapper.addEventListener('touchmove', handleTouchMove, { passive: false });
+      wrapper.addEventListener('touchend', handleTouchEnd);
+      wrapper.addEventListener('touchcancel', handleTouchEnd);
+
+      return () => {
+         wrapper.removeEventListener('touchstart', handleTouchStart);
+         wrapper.removeEventListener('touchmove', handleTouchMove);
+         wrapper.removeEventListener('touchend', handleTouchEnd);
+         wrapper.removeEventListener('touchcancel', handleTouchEnd);
+         endScrollLock();
+      };
+   }, [zoom, panOffset]);
 
    const handleFileDropped = (files) => {
       const selected = files[0];
@@ -178,39 +280,95 @@ export default function AddMedia() {
                   </div>
                </div>
 
-               <div className="canvas-wrapper">
-                  <div className="page-container" ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
-                     <Document
-                        file={file}
-                        onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-                        loading="Loading PDF..."
-                     >
-                        <Page
-                           pageNumber={currPage}
-                           width={600}
-                           renderTextLayer={false}
-                           renderAnnotationLayer={false}
-                           className="pdf-page"
-                        />
-                     </Document>
+               <div className="canvas-wrapper" ref={canvasWrapperRef} style={{
+                  overflow: isMobileDevice() ? 'auto' : 'visible',
+                  WebkitOverflowScrolling: 'touch',
+                  overscrollBehavior: isDraggingOverlay ? 'none' : 'auto'
+               }}>
+                  <div
+                     className="zoom-container"
+                     style={{
+                        transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
+                        transformOrigin: 'top left',
+                        transition: 'transform 0.1s ease-out',
+                        display: 'inline-block'
+                     }}
+                  >
+                     <div className="page-container" ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
+                        <Document
+                           file={file}
+                           onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                           loading="Loading PDF..."
+                        >
+                           <Page
+                              pageNumber={currPage}
+                              width={renderWidth}
+                              renderTextLayer={false}
+                              renderAnnotationLayer={false}
+                              className="pdf-page"
+                           />
+                        </Document>
 
-                     {images.filter(img => img.page === currPage).map((img) => (
-                        <DraggableImageOverlay
-                           key={img.id}
-                           id={img.id}
-                           src={img.src}
-                           x={img.x}
-                           y={img.y}
-                           width={img.width}
-                           height={img.height}
-                           isSelected={selectedImageId === img.id}
-                           onSelect={setSelectedImageId}
-                           onUpdatePosition={updateImagePos}
-                           onUpdateSize={updateImageSize}
-                           onRemove={removeImage}
-                        />
-                     ))}
+                        {images.filter(img => img.page === currPage).map((img) => (
+                           <DraggableImageOverlay
+                              key={img.id}
+                              id={img.id}
+                              src={img.src}
+                              x={img.x}
+                              y={img.y}
+                              width={img.width}
+                              height={img.height}
+                              isSelected={selectedImageId === img.id}
+                              onSelect={setSelectedImageId}
+                              onUpdatePosition={updateImagePos}
+                              onUpdateSize={updateImageSize}
+                              onRemove={removeImage}
+                           />
+                        ))}
+                     </div>
                   </div>
+               </div>
+
+               {/* Zoom Controls */}
+               <div className="zoom-controls" style={{
+                  position: 'fixed',
+                  bottom: '80px',
+                  right: '20px',
+                  display: 'flex',
+                  flexDirection: isMobileDevice() ? 'column' : 'row',
+                  gap: '8px',
+                  background: 'var(--color-bg-card)',
+                  padding: '8px',
+                  borderRadius: '24px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  zIndex: 100,
+                  border: '1px solid var(--color-border)'
+               }}>
+                  <button onClick={() => {
+                     setZoom(z => Math.max(0.5, z - 0.2));
+                  }} className="zoom-btn" style={{
+                     width: '40px', height: '40px', borderRadius: '50%',
+                     border: 'none', background: 'var(--color-primary)', color: 'white',
+                     display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                     <ZoomOut size={20} />
+                  </button>
+                  <span style={{
+                     margin: '0 8px',
+                     color: 'var(--color-text-primary)',
+                     display: isMobileDevice() ? 'none' : 'block'
+                  }}>
+                     {Math.round(zoom * 100)}%
+                  </span>
+                  <button onClick={() => {
+                     setZoom(z => Math.min(3, z + 0.2));
+                  }} className="zoom-btn" style={{
+                     width: '40px', height: '40px', borderRadius: '50%',
+                     border: 'none', background: 'var(--color-primary)', color: 'white',
+                     display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                     <ZoomIn size={20} />
+                  </button>
                </div>
             </div>
          )}

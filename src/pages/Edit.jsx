@@ -7,7 +7,7 @@ import { addTextToPDF, saveAnnotationsToPDF } from '../utils/pdfActions';
 import { saveEditorChanges } from '../utils/editorUtils';
 import { trackDownload } from '../utils/analytics';
 import { saveDownloadRecord } from '../utils/downloadManager';
-import { getOptimalPDFWidth, isMobileDevice } from '../utils/deviceUtils';
+import { getOptimalPDFWidth, isMobileDevice, startScrollLock, endScrollLock } from '../utils/deviceUtils';
 import './Edit.css';
 
 // Separate component to handle Ref for Draggable (Fixes React 18 StrictMode crash)
@@ -243,24 +243,33 @@ export default function Edit() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [file, isProcessing, handleSave]);
 
+
     // Calculate optimal render width on mount and resize
     useEffect(() => {
         const updateRenderWidth = () => {
             if (canvasWrapperRef.current) {
                 const containerWidth = canvasWrapperRef.current.clientWidth;
+                // Pass true for aggressive width usage if needed, or rely on internal logic
                 const optimalWidth = getOptimalPDFWidth(containerWidth);
                 setRenderWidth(optimalWidth);
             } else {
-                // Fallback if container not ready
-                const optimalWidth = getOptimalPDFWidth(window.innerWidth);
-                setRenderWidth(optimalWidth);
+                // Fallback
+                setRenderWidth(isMobileDevice() ? window.innerWidth * 0.95 : 800);
             }
         };
 
-        updateRenderWidth();
+        // Initial delay to let layout settle
+        const timeout = setTimeout(updateRenderWidth, 100);
+
         window.addEventListener('resize', updateRenderWidth);
-        return () => window.removeEventListener('resize', updateRenderWidth);
+        return () => {
+            window.removeEventListener('resize', updateRenderWidth);
+            clearTimeout(timeout);
+        };
     }, []);
+
+    // Initial Zoom set to 1, but we might want "Fit Width" logic if the user desires
+    // Current logic: Render width matches container, so Zoom 1 = Fit Width approximately.
 
     // Zoom Controls
     const handleZoomIn = () => {
@@ -314,6 +323,7 @@ export default function Edit() {
         const handleTouchStart = (e) => {
             if (e.touches.length === 2) {
                 e.preventDefault();
+                startScrollLock(); // Lock body scroll during gesture
                 const distance = getTouchDistance(e.touches[0], e.touches[1]);
                 const center = getTouchCenter(e.touches[0], e.touches[1]);
                 touchStartRef.current = {
@@ -325,6 +335,7 @@ export default function Edit() {
             }
         };
 
+        // Throttle touch move for performance could be added here if needed
         const handleTouchMove = (e) => {
             if (e.touches.length === 2 && touchStartRef.current.distance > 0) {
                 e.preventDefault();
@@ -337,6 +348,8 @@ export default function Edit() {
                 const newZoom = Math.max(0.5, Math.min(3, touchStartRef.current.zoom * zoomDelta));
 
                 // Calculate pan
+                // The pan logic here is simplified; robust implementations usually consider zoom focal point
+                // For now, we stick to simple delta translation
                 const panDeltaX = currentCenter.x - touchStartRef.current.center.x;
                 const panDeltaY = currentCenter.y - touchStartRef.current.center.y;
 
@@ -350,18 +363,23 @@ export default function Edit() {
 
         const handleTouchEnd = (e) => {
             if (e.touches.length < 2) {
+                endScrollLock(); // Unlock body scroll
                 touchStartRef.current = { distance: 0, center: { x: 0, y: 0 }, zoom: 1, pan: { x: 0, y: 0 } };
             }
         };
 
+        // Use { passive: false } to allow preventing default
         wrapper.addEventListener('touchstart', handleTouchStart, { passive: false });
         wrapper.addEventListener('touchmove', handleTouchMove, { passive: false });
         wrapper.addEventListener('touchend', handleTouchEnd);
+        wrapper.addEventListener('touchcancel', handleTouchEnd);
 
         return () => {
             wrapper.removeEventListener('touchstart', handleTouchStart);
             wrapper.removeEventListener('touchmove', handleTouchMove);
             wrapper.removeEventListener('touchend', handleTouchEnd);
+            wrapper.removeEventListener('touchcancel', handleTouchEnd);
+            endScrollLock(); // Ensure lock is released on unmount
         };
     }, [zoom, panOffset]);
 
@@ -394,8 +412,9 @@ export default function Edit() {
                             )}
                         </div>
 
+
                         <div className="action-controls">
-                            {/* Always show Save button when file is loaded */}
+                            {/* Combined Save & Download Button */}
                             <button
                                 className="btn-primary"
                                 onClick={handleSave}
@@ -405,29 +424,11 @@ export default function Edit() {
                                 <Save size={16} />
                                 {isProcessing ? 'Saving...' : 'Save & Download'}
                                 {texts.length > 0 && !isProcessing && (
-                                    <span style={{
-                                        fontSize: '10px',
-                                        background: '#ef4444',
-                                        color: 'white',
-                                        padding: '2px 6px',
-                                        borderRadius: '10px',
-                                        marginLeft: '4px'
-                                    }}>
+                                    <span className="badge-count">
                                         {texts.length}
                                     </span>
                                 )}
                             </button>
-
-                            {/* Optional: Separate Download button (only after save) */}
-                            {downloadUrl && !isProcessing && (
-                                <button
-                                    onClick={handleDownload}
-                                    className="btn-secondary"
-                                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                                >
-                                    <Download size={16} /> Download Again
-                                </button>
-                            )}
                         </div>
                     </div>
 
@@ -521,8 +522,14 @@ export default function Edit() {
                                             onUpdateSize={updateTextSize}
                                             onToggleEdit={toggleTextEdit}
                                             onRemove={removeText}
-                                            onDragStart={() => setIsDraggingOverlay(true)}
-                                            onDragEnd={() => setIsDraggingOverlay(false)}
+                                            onDragStart={() => {
+                                                setIsDraggingOverlay(true);
+                                                startScrollLock();
+                                            }}
+                                            onDragEnd={() => {
+                                                setIsDraggingOverlay(false);
+                                                endScrollLock();
+                                            }}
                                         />
                                     </React.Fragment>
                                 ))}

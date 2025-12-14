@@ -40,14 +40,14 @@ export const getOptimalPDFWidth = (containerWidth) => {
     const viewport = getViewportDimensions();
 
     if (isMobile) {
-        // On mobile, use 90% of viewport width to leave some padding
-        // Cap at container width if it's smaller
-        const mobileWidth = Math.min(viewport.width * 0.9, containerWidth || viewport.width);
+        // On mobile, use 95% of viewport width to maximize space but keep small margins
+        // But do not exceed container width
+        const mobileWidth = Math.min(viewport.width * 0.95, containerWidth || viewport.width);
         return Math.floor(mobileWidth);
     } else {
-        // On desktop, use fixed 600px width (existing behavior)
-        // Or container width if smaller
-        return Math.min(600, containerWidth || 600);
+        // On desktop, use larger width but fit within container
+        // Standard A4-ish viewing size or container width
+        return Math.min(800, containerWidth - 40 || 800);
     }
 };
 
@@ -69,4 +69,15 @@ export const isTouchDevice = () => {
  */
 export const getDevicePixelRatio = () => {
     return window.devicePixelRatio || 1;
+};
+
+// Scroll Locking Utilities for Drag Operations
+export const startScrollLock = () => {
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none'; // Prevent browser handling of gestures
+};
+
+export const endScrollLock = () => {
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
 };
