@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { X } from 'lucide-react';
 
 const DraggableTextOverlay = ({
@@ -10,6 +10,8 @@ const DraggableTextOverlay = ({
     color,
     isEditing,
     zoom = 1,
+    fixedWidth = false,
+    maxWidth = 0,
     onUpdatePosition,
     onUpdateText,
     onUpdateSize,
@@ -19,20 +21,53 @@ const DraggableTextOverlay = ({
     onDragEnd
 }) => {
     const [isDragging, setIsDragging] = useState(false);
+    const [viewFontSize, setViewFontSize] = useState(fontSize);
     const dragStartRef = useRef({ x: 0, y: 0 });
     const initialPosRef = useRef({ x, y });
     const textareaRef = useRef(null);
+    const measureRef = useRef(null);
 
-    // Auto-focus textarea when editing starts
+    // Calculate optimal font size for VIEW mode (shrink to fit)
+    useLayoutEffect(() => {
+        if (fixedWidth && maxWidth > 0 && measureRef.current) {
+            const el = measureRef.current;
+            // Start with base size
+            let currentSize = fontSize;
+            el.style.fontSize = `${currentSize}px`;
+
+            // Loop to shrink until it fits
+            // Note: We use a clamp (min 6px) to prevent disappearance
+            while (el.scrollWidth > maxWidth && currentSize > 6) {
+                currentSize -= 1;
+                el.style.fontSize = `${currentSize}px`;
+            }
+            setViewFontSize(currentSize);
+        } else {
+            setViewFontSize(fontSize);
+        }
+    }, [text, fixedWidth, maxWidth, fontSize, zoom]);
+
+    // 1. Auto-focus and SELECT all text when editing starts
     useEffect(() => {
         if (isEditing && textareaRef.current) {
             textareaRef.current.focus();
-            textareaRef.current.select(); // Optional: select all text on edit
+            textareaRef.current.select();
         }
     }, [isEditing]);
 
+    // 2. Auto-expand Width during Edit (so user can read what they type)
+    useEffect(() => {
+        if (isEditing && textareaRef.current && fixedWidth) {
+            textareaRef.current.style.width = 'auto'; // Reset to measure
+            textareaRef.current.style.width = `${Math.max(maxWidth, textareaRef.current.scrollWidth)}px`;
+        }
+    }, [isEditing, text, fixedWidth, maxWidth]);
+
     // Handle Dragging
     const handlePointerDown = (e) => {
+        // Prevent Drag if FixedWidth (Single Word Editing Lock)
+        if (fixedWidth && !e.ctrlKey) return;
+
         if (isEditing) return; // Don't drag while editing
 
         e.stopPropagation();
@@ -100,12 +135,9 @@ const DraggableTextOverlay = ({
             moveEvent.preventDefault();
             moveEvent.stopPropagation();
 
-            // Account for zoom: Dragging down increases size, up decreases.
-            // Sensitivity: 1px drag = 0.5px font size change, adjusted for zoom
+            // Account for zoom
             const deltaY = (moveEvent.clientY - startY) / zoom;
-            const newSize = Math.max(8, startSize + (deltaY * 0.5)); // Min 8px
-
-            // Cap max size if needed, e.g. 100
+            const newSize = Math.max(8, startSize + (deltaY * 0.5));
             const cappedSize = Math.min(100, newSize);
 
             onUpdateSize(id, cappedSize);
@@ -123,119 +155,138 @@ const DraggableTextOverlay = ({
         window.addEventListener('pointerup', onPointerUp);
     };
 
-    // Calculate handle size based on fontSize to satisfy "Scale proportionally" requirement
-    // Clamp between 16px (minimum touchable) and 24px (max standard)
-    // Or allow it to shrink further if text is tiny, but keep a larger invisible hit area?
-    // Requirement says: "When text size decreases, control handles must also decrease."
     const handleSize = Math.max(12, Math.min(24, fontSize * 1.2));
 
-    // Hit area should remain decent (e.g. at least 24px) via padding/margins if visible size is small,
-    // but for now we follow the visible scaling requested.
-
     return (
-        <div
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onDoubleClick={handleDoubleClick}
-            style={{
-                position: 'absolute',
-                left: x,
-                top: y,
-                cursor: isEditing ? 'text' : (isDragging ? 'grabbing' : 'grab'),
-                userSelect: 'none',
-                zIndex: 20,
-                minWidth: '20px',
-                touchAction: 'none' // Critical: Disable browser gestures on this element
-            }}
-        >
-            {isEditing ? (
-                <textarea
-                    ref={textareaRef}
-                    value={text}
-                    onChange={(e) => onUpdateText(id, e.target.value)}
-                    onBlur={handleBlur}
-                    onKeyDown={handleKeyDown}
+        <>
+            {/* Hidden Measurement Span for Auto-Scale Calculation */}
+            {fixedWidth && (
+                <span
+                    ref={measureRef}
                     style={{
+                        position: 'absolute',
+                        visibility: 'hidden',
+                        height: 'auto',
+                        width: 'auto',
+                        whiteSpace: 'pre',
+                        fontFamily: 'Helvetica, sans-serif', // Match PDF font approx
                         fontSize: `${fontSize}px`,
-                        color: `rgb(${color.r},${color.g},${color.b})`,
-                        background: 'rgba(255, 255, 255, 0.9)',
-                        border: '1px solid #3b82f6',
-                        borderRadius: '4px',
-                        padding: '4px',
-                        outline: 'none',
-                        resize: 'none',
-                        whiteSpace: 'pre-wrap',
-                        overflow: 'hidden',
-                        minWidth: '150px',
-                        minHeight: '1.2em'
+                        fontWeight: 'normal',
                     }}
-                    onClick={(e) => e.stopPropagation()} // Allow clicking inside without triggering drag
-                />
-            ) : (
-                <div
-                    style={{
-                        fontSize: `${fontSize}px`,
-                        color: `rgb(${color.r},${color.g},${color.b})`,
-                        background: 'rgba(255, 255, 255, 0.3)', // Slight background to indicate interactable
-                        border: '1px dashed transparent', // Placeholder for hover effect
-                        whiteSpace: 'pre-wrap',
-                        padding: '5px', // Match padding of textarea roughly
-                        position: 'relative' // relative for absolute children
-                    }}
-                    className="text-display"
                 >
                     {text}
-
-                    {/* Delete button */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onRemove(id);
-                        }}
-                        style={{
-                            position: 'absolute',
-                            top: -handleSize / 2,
-                            right: -handleSize / 2,
-                            background: 'red',
-                            color: 'white',
-                            borderRadius: '50%',
-                            width: `${handleSize}px`,
-                            height: `${handleSize}px`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: `${Math.max(8, handleSize / 2)}px`,
-                            zIndex: 21,
-                            padding: 0
-                        }}
-                        className="delete-btn"
-                    >
-                        <X size={handleSize * 0.6} />
-                    </button>
-
-                    {/* Resize Handle */}
-                    <div
-                        onPointerDown={handleResizePointerDown}
-                        style={{
-                            position: 'absolute',
-                            bottom: -handleSize / 2,
-                            right: -handleSize / 2,
-                            width: `${handleSize}px`,
-                            height: `${handleSize}px`,
-                            background: 'white',
-                            border: '1px solid #3b82f6',
-                            borderRadius: '50%',
-                            cursor: 'se-resize',
-                            zIndex: 21,
-                            touchAction: 'none'
-                        }}
-                    />
-                </div>
+                </span>
             )}
-        </div>
+
+            <div
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onDoubleClick={handleDoubleClick}
+                style={{
+                    position: 'absolute',
+                    left: x,
+                    top: y,
+                    cursor: isEditing ? 'text' : (isDragging ? 'grabbing' : 'grab'),
+                    userSelect: 'none',
+                    zIndex: isEditing ? 50 : 20, // Raise zIndex when editing
+                    minWidth: '20px',
+                    touchAction: 'none'
+                }}
+            >
+                {isEditing ? (
+                    <textarea
+                        ref={textareaRef}
+                        value={text}
+                        onChange={(e) => onUpdateText(id, e.target.value)}
+                        onBlur={handleBlur}
+                        onKeyDown={handleKeyDown}
+                        rows={1}
+                        style={{
+                            fontSize: `${fontSize}px`, // Always use FULL size when editing
+                            color: `rgb(${color.r},${color.g},${color.b})`,
+                            background: 'rgba(255, 255, 255, 0.95)',
+                            border: '1px solid #3b82f6',
+                            borderRadius: '4px',
+                            padding: '4px', // Keep padding for readability
+                            outline: 'none',
+                            resize: 'none',
+                            whiteSpace: 'pre', // No wrap for single word
+                            overflow: 'hidden',
+                            minWidth: fixedWidth ? `${maxWidth}px` : '150px',
+                            minHeight: '1.2em',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                ) : (
+                    <div
+                        style={{
+                            fontSize: `${viewFontSize}px`, // Use Scaled Size
+                            color: `rgb(${color.r},${color.g},${color.b})`,
+                            background: 'rgba(255, 255, 255, 0.3)',
+                            border: '1px dashed transparent',
+                            whiteSpace: 'pre',
+                            padding: fixedWidth ? '0px' : '5px', // Reduce padding in View mode for tight fit
+                            // Note: We don't apply padding in fixedWidth view mode to align perfectly with original text
+                            position: 'relative'
+                        }}
+                        className="text-display"
+                    >
+                        {text}
+
+                        {/* Delete button */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onRemove(id);
+                            }}
+                            style={{
+                                position: 'absolute',
+                                top: -handleSize / 2,
+                                right: -handleSize / 2,
+                                background: 'red',
+                                color: 'white',
+                                borderRadius: '50%',
+                                width: `${handleSize}px`,
+                                height: `${handleSize}px`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: `${Math.max(8, handleSize / 2)}px`,
+                                zIndex: 21,
+                                padding: 0
+                            }}
+                            className="delete-btn"
+                        >
+                            <X size={handleSize * 0.6} />
+                        </button>
+
+                        {/* Resize Handle */}
+                        {!fixedWidth && (
+                            <div
+                                onPointerDown={handleResizePointerDown}
+                                style={{
+                                    position: 'absolute',
+                                    bottom: -handleSize / 2,
+                                    right: -handleSize / 2,
+                                    width: `${handleSize}px`,
+                                    height: `${handleSize}px`,
+                                    background: 'white',
+                                    border: '1px solid #3b82f6',
+                                    borderRadius: '50%',
+                                    cursor: 'se-resize',
+                                    zIndex: 21,
+                                    touchAction: 'none'
+                                }}
+                            />
+                        )}
+                    </div>
+                )}
+            </div>
+        </>
     );
 };
 

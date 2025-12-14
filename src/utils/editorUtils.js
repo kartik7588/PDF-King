@@ -132,13 +132,12 @@ export const saveEditorChanges = async (fileInput, annotations, scaleMapOrSingle
             // Apply offsets to map to absolute PDF space
             const pdfX = cropX + normalizedX;
             const pdfY = cropY + normalizedYFromBottom;
-            const pdfTopY = pdfY; // This is our anchor (Top-Left of the annotation box in PDF space? No, wait.)
+            const pdfTopY = pdfY;
 
-            // toPdfLibCoords logic was: pdfY = pageHeight - (y / scale)
-            // Here pageHeight corresponds to cropHeight. 
-            // And we add cropY offset.
-            // So: pdfTopY = cropY + cropHeight - (y / scale)
-            // Which matches my formula above.
+            // Calculate dimensions in PDF points
+            const pdfBoxWidth = width / pageScale;
+            const pdfBoxHeight = height / pageScale;
+            const pdfBottomY = pdfTopY - pdfBoxHeight;
 
             // Allow for slight error margin or "NaN" recovery
             if (isNaN(pdfX) || isNaN(pdfTopY)) {
@@ -146,31 +145,36 @@ export const saveEditorChanges = async (fileInput, annotations, scaleMapOrSingle
                 continue;
             }
 
-            const pdfBoxWidth = width / pageScale;
-            const pdfBoxHeight = height / pageScale;
-            const pdfBottomY = pdfTopY - pdfBoxHeight;
-            const fontSizePdf = size / pageScale;
-
-            // Draw Whiteout (Background)
+            // Draw Whiteout (Background) to mask original text
             page.drawRectangle({
-                x: pdfX, // Removed -1 offset for strictness, user wants EXACT position
+                x: pdfX,
                 y: pdfBottomY,
                 width: pdfBoxWidth,
                 height: pdfBoxHeight,
                 color: rgb(1, 1, 1),
             });
 
-            // Handle Color - ensure 0-1 range if RGB is provided as 0-255? 
-            // Assuming the app provides 0-255 logic elsewhere? 
-            // Actually Edit.jsx init is {r:0, g:0, b:0}.
-            // DraggableTextOverlay doesn't seem to have a generic color picker yet that returns 0-255.
-            // But let's be safe. If > 1, assume 8-bit.
+            // Handle Color
             let r = ann.color?.r || 0;
             let g = ann.color?.g || 0;
             let b = ann.color?.b || 0;
             if (r > 1) r /= 255;
             if (g > 1) g /= 255;
             if (b > 1) b /= 255;
+
+            let fontSizePdf = size / pageScale;
+
+            // Auto-Scale Font for Fixed Width Words
+            if (ann.fixedWidth && ann.maxWidth) {
+                const maxPdfWidth = ann.maxWidth / pageScale;
+                const textWidth = font.widthOfTextAtSize(ann.text || "", fontSizePdf);
+
+                if (textWidth > maxPdfWidth) {
+                    // Shrink to fit
+                    const ratio = maxPdfWidth / textWidth;
+                    fontSizePdf = Math.floor(fontSizePdf * ratio * 0.95); // 0.95 for safety padding
+                }
+            }
 
             // Draw Text
             page.drawText(ann.text || "", {
@@ -179,7 +183,9 @@ export const saveEditorChanges = async (fileInput, annotations, scaleMapOrSingle
                 size: fontSizePdf,
                 font: font,
                 color: rgb(r, g, b),
-                maxWidth: pdfBoxWidth
+                maxWidth: ann.fixedWidth ? undefined : pdfBoxWidth // If we pre-scaled, don't use maxWidth (it breaks words?)
+                // Actually pdf-lib maxWidth wraps text. We want shrinking, not wrapping.
+                // So we handled shrinking above. leaving maxWidth undefined is safer for single line.
             });
 
             processedCount++;

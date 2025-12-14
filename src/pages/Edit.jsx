@@ -91,31 +91,78 @@ export default function Edit() {
         const target = e.target;
         if (target.tagName !== 'SPAN' || !target.textContent) return;
 
-        // This relies on react-pdf rendering spans in the text layer
-        // We need to calculate position relative to our container
-        const containerRect = containerRef.current.getBoundingClientRect();
-        const spanRect = target.getBoundingClientRect();
+        // 1. Hit Testing: Find which word was clicked
+        const textContent = target.textContent;
+        const computedStyle = window.getComputedStyle(target);
+        const font = `${computedStyle.fontWeight} ${computedStyle.fontSize} ${computedStyle.fontFamily}`;
 
-        // Account for zoom when calculating position
-        // Note: containerRect and spanRect are both subject to the same transform (pan/zoom) 
-        // if they are inside the transformed container. 
-        // But here containerRect is likely the wrapper? No, it's containerRef (page-container).
-        // Since containerRef is INSIDE the zoom-container transformation, both rects are transformed.
-        // Thus their difference is the SCALED difference. We only need to un-scale (divide by zoom).
-        // Pan is implicitly handled because it applies to both.
-        const relativeX = (spanRect.left - containerRect.left) / zoom;
-        const relativeY = (spanRect.top - containerRect.top) / zoom;
-        const width = spanRect.width / zoom;
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        context.font = font;
+
+        const spanRect = target.getBoundingClientRect();
+        const clickX = e.clientX - spanRect.left; // Visual offset inside span
+
+        // Calculate scaling factor (PDF text scaling vs Canvas measurement)
+        const measuredTotalWidth = context.measureText(textContent).width;
+        // Avoid division by zero
+        const scaleFactor = measuredTotalWidth > 0 ? (spanRect.width / measuredTotalWidth) : 1;
+
+        // Split text but keep delimiters to calculate offsets correctly
+        // We split by spaces but want to capture the word at the click
+        const tokens = textContent.split(/(\s+)/);
+
+        let currentVisualX = 0;
+        let selectedWord = null;
+        let selectedWordVisualOffset = 0;
+        let selectedWordVisualWidth = 0;
+
+        for (const token of tokens) {
+            const tokenWidth = context.measureText(token).width * scaleFactor;
+
+            if (clickX >= currentVisualX && clickX <= (currentVisualX + tokenWidth)) {
+                // Click falls within this token
+                // If it's just whitespace, maybe select previous/next or ignore?
+                // Requirement says "Allow users to edit individual words". Selecting space is useless.
+                if (token.trim().length > 0) {
+                    selectedWord = token;
+                    selectedWordVisualOffset = currentVisualX;
+                    selectedWordVisualWidth = tokenWidth;
+                    break;
+                }
+            }
+            currentVisualX += tokenWidth;
+        }
+
+        if (!selectedWord) {
+            // Fallback: If clicked on whitespace, do nothing or select whole line? 
+            // Requirement: "Tapping outside the word cancels word edit mode".
+            // So if they strictly tap on space, we essentially ignore it or just return.
+            return;
+        }
+
+        // 2. Calculate PDF Coordinates for the WORD
+        const containerRect = containerRef.current.getBoundingClientRect();
+
+        // Position of the WORD relative to the container
+        // spanRect.left is the start of the line.
+        // selectedWordVisualOffset is the distance from start of line to word.
+        const wordScreenX = spanRect.left + selectedWordVisualOffset;
+        const wordScreenY = spanRect.top; // Assuming single line span
+
+        const relativeX = (wordScreenX - containerRect.left) / zoom;
+        const relativeY = (wordScreenY - containerRect.top) / zoom;
+        const width = selectedWordVisualWidth / zoom;
         const height = spanRect.height / zoom;
 
         // Create new replacement annotation
         const newText = {
             id: Date.now(),
-            text: target.textContent,
-            originalText: target.textContent,
+            text: selectedWord,
+            originalText: selectedWord,
             x: relativeX,
             y: relativeY,
-            width: width,
+            width: width, // Fixed width from original word
             height: height,
             cover: { // Permanent cover position
                 x: relativeX,
@@ -123,17 +170,14 @@ export default function Edit() {
                 width: width,
                 height: height
             },
-            size: parseFloat(window.getComputedStyle(target).fontSize) / zoom,
+            size: parseFloat(computedStyle.fontSize) / zoom,
             color: { r: 0, g: 0, b: 0 },
             isEditing: true,
             page: currPage - 1,
-            isReplacement: true
+            isReplacement: true,
+            fixedWidth: true, // Lock width
+            maxWidth: width // Constraint
         };
-
-        try {
-            // Hide the original span visually immediately to avoid double-text effect while editing
-            // The white box rendered by React handles the persistence.
-        } catch (e) { console.warn(e); }
 
         setTexts([...texts, newText]);
     };
@@ -488,10 +532,10 @@ export default function Edit() {
                                                 className="whiteout-cover-static"
                                                 style={{
                                                     position: 'absolute',
-                                                    left: textItem.cover.x,
-                                                    top: textItem.cover.y,
-                                                    width: textItem.cover.width,
-                                                    height: textItem.cover.height,
+                                                    left: textItem.cover.x * zoom,
+                                                    top: textItem.cover.y * zoom,
+                                                    width: textItem.cover.width * zoom,
+                                                    height: textItem.cover.height * zoom,
                                                     backgroundColor: 'white',
                                                     zIndex: 15,
                                                     pointerEvents: 'none'
@@ -499,19 +543,24 @@ export default function Edit() {
                                             />
                                         )}
 
-                                        {/* 1b. Dynamic Cover (Moves with Overlay - prevents canvas showing through) */}
+                                        {/* 1b. Dynamic Cover (Moves with Overlay - prevents canvas showing through if text moves) */}
                                         {textItem.isReplacement && (
                                             <div
                                                 className="whiteout-cover-dynamic"
                                                 style={{
                                                     position: 'absolute',
-                                                    left: textItem.x,
-                                                    top: textItem.y,
-                                                    width: textItem.width || textItem.cover?.width || 100,
-                                                    height: textItem.height || textItem.cover?.height || 20,
+                                                    left: textItem.x * zoom,
+                                                    top: textItem.y * zoom,
+                                                    width: (textItem.width || textItem.cover?.width || 100) * zoom,
+                                                    height: (textItem.height || textItem.cover?.height || 20) * zoom,
                                                     backgroundColor: 'white',
                                                     zIndex: 15,
-                                                    pointerEvents: 'none'
+                                                    pointerEvents: 'none',
+                                                    // Only show dynamic cover if we are NOT at the static position?
+                                                    // No, if we drag, the static stays (hiding old). 
+                                                    // The dynamic moves with us (providing background for new).
+                                                    // But if fixedWidth (Single Word), we usually don't drag.
+                                                    display: textItem.fixedWidth ? 'none' : 'block'
                                                 }}
                                             />
                                         )}
@@ -520,15 +569,22 @@ export default function Edit() {
                                         <DraggableTextOverlay
                                             id={textItem.id}
                                             text={textItem.text}
-                                            x={textItem.x}
-                                            y={textItem.y}
-                                            fontSize={textItem.size}
+                                            x={textItem.x * zoom}
+                                            y={textItem.y * zoom}
+                                            fontSize={textItem.size * zoom}
+                                            // fontSize also needs zoom if DraggableTextOverlay doesn't multiply it internally?
+                                            // DraggableTextOverlay receives 'zoom' prop. 
+                                            // Let's check: It USES zoom for resize calc, but applies fontSize directly to style.
+                                            // So we MUST pass zoomed fontSize.
+
                                             color={textItem.color}
                                             isEditing={textItem.isEditing}
                                             zoom={zoom}
-                                            onUpdatePosition={updateTextPos}
+                                            fixedWidth={textItem.fixedWidth}
+                                            maxWidth={textItem.maxWidth ? textItem.maxWidth * zoom : 0}
+                                            onUpdatePosition={(id, newX, newY) => updateTextPos(id, newX / zoom, newY / zoom)}
                                             onUpdateText={updateTextContent}
-                                            onUpdateSize={updateTextSize}
+                                            onUpdateSize={(id, newSize) => updateTextSize(id, newSize / zoom)}
                                             onToggleEdit={toggleTextEdit}
                                             onRemove={removeText}
                                             onDragStart={() => {
