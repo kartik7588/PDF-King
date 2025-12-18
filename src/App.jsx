@@ -10,6 +10,7 @@ import AddMedia from './pages/AddMedia';
 import Edit from './pages/Edit';
 import Compress from './pages/Compress';
 import DownloadedFiles from './pages/DownloadedFiles';
+import ExportImages from './pages/ExportImages';
 
 const Placeholder = ({ title }) => (
   <div className="glass-panel" style={{ padding: '2rem' }}>
@@ -31,6 +32,7 @@ function App() {
           <Route path="/compress" element={<Compress />} />
           <Route path="/edit" element={<Edit />} />
           <Route path="/downloads" element={<DownloadedFiles />} />
+          <Route path="/export-images" element={<ExportImages />} />
         </Route>
       </Routes>
     </HashRouter>

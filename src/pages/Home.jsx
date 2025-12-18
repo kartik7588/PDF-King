@@ -5,7 +5,8 @@ import {
     RotateCw,
     ImagePlus,
     Minimize2,
-    PenTool
+    PenTool,
+    Image as ImageIcon
 } from 'lucide-react';
 import Card from '../components/Card';
 import './Home.css';
@@ -53,6 +54,13 @@ export default function Home() {
             title: 'Edit PDF',
             description: 'Add text, shapes, and annotations to your PDF document.',
             colorClass: 'text-accent'
+        },
+        {
+            to: '/export-images',
+            icon: ImageIcon,
+            title: 'Export to Image',
+            description: 'Convert PDF pages to high-quality PNG or JPG images.',
+            colorClass: 'text-primary'
         }
     ];
 

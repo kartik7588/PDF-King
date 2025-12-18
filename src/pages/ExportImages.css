@@ -1,0 +1,114 @@
+.export-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.selection-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.selection-count {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.export-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.format-select {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary, #1e293b);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    min-width: 140px;
+}
+
+.format-select option {
+    background-color: var(--bg-secondary, #0f172a);
+    color: var(--text-primary, #ffffff);
+    padding: 0.5rem;
+}
+
+.thumbnails-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    padding: 1.5rem;
+    overflow-y: auto;
+    height: 100%;
+}
+
+.thumbnail-wrapper {
+    position: relative;
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--bg-secondary);
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.thumbnail-wrapper:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.thumbnail-wrapper.selected {
+    border-color: var(--accent-primary);
+    background: rgba(var(--accent-primary-rgb), 0.05);
+}
+
+.thumbnail-overlay {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 10;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.thumbnail-wrapper:hover .thumbnail-overlay,
+.thumbnail-wrapper.selected .thumbnail-overlay {
+    opacity: 1;
+}
+
+.thumbnail-wrapper canvas {
+    max-width: 100%;
+    height: auto !important;
+    display: block;
+}
+
+.page-number {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Spinner if not already global */
+.loading-spinner {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
