@@ -124,19 +124,34 @@ export const saveEditorChanges = async (fileInput, annotations, scaleMapOrSingle
             const height = Number(ann.height) || 20;
             const size = Number(ann.size) || 12;
 
-            // Convert to PDF Coords (Normalizing visual input to Points)
-            const normalizedX = x / pageScale;
-            // Visual Y is from top. Distance from BOTTOM of visible area is: height - visualY
-            const normalizedYFromBottom = (cropHeight - (y / pageScale));
+            let normalizedX, normalizedYFromBottom, pdfBoxWidth, pdfBoxHeight, fontSizePdf;
+
+            // Unit Handling: 'point' (Pre-scaled) vs 'pixel' (Needs scaling)
+            if (ann.unit === 'point') {
+                // Already in PDF points
+                normalizedX = x;
+                normalizedYFromBottom = (cropBox.height - y); // Simple inversion from top-left to bottom-left relative to cropBox
+                pdfBoxWidth = width;
+                pdfBoxHeight = height;
+                fontSizePdf = size;
+            } else {
+                // Pixel mode (Default/Desktop)
+                normalizedX = x / pageScale;
+                // Visual Y is from top. Distance from BOTTOM of visible area is: height - visualY
+                normalizedYFromBottom = (cropHeight - (y / pageScale));
+                pdfBoxWidth = width / pageScale;
+                pdfBoxHeight = height / pageScale;
+                fontSizePdf = size / pageScale;
+            }
 
             // Apply offsets to map to absolute PDF space
+            // cropX/Y are the PDF coordinates of the top-left (or bottom-left depending on rotation, typically bottom-left in pdf-lib geometry, but getCropBox returns {x,y} of BL usually... wait).
+            // Page.getCropBox() returns {x, y, width, height}. x,y are usually 0,0 or MediaBox offset.
+            // If cropX/Y is the origin of the visible area.
+
             const pdfX = cropX + normalizedX;
             const pdfY = cropY + normalizedYFromBottom;
             const pdfTopY = pdfY;
-
-            // Calculate dimensions in PDF points
-            const pdfBoxWidth = width / pageScale;
-            const pdfBoxHeight = height / pageScale;
             const pdfBottomY = pdfTopY - pdfBoxHeight;
 
             // Allow for slight error margin or "NaN" recovery
@@ -162,11 +177,9 @@ export const saveEditorChanges = async (fileInput, annotations, scaleMapOrSingle
             if (g > 1) g /= 255;
             if (b > 1) b /= 255;
 
-            let fontSizePdf = size / pageScale;
-
             // Auto-Scale Font for Fixed Width Words
             if (ann.fixedWidth && ann.maxWidth) {
-                const maxPdfWidth = ann.maxWidth / pageScale;
+                const maxPdfWidth = pdfBoxWidth;
                 const textWidth = font.widthOfTextAtSize(ann.text || "", fontSizePdf);
 
                 if (textWidth > maxPdfWidth) {
