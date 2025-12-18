@@ -1,122 +1,69 @@
-# PDF King
+# 👑 PDF King
 
-## Overview
-PDF King is a complete browser-based PDF management tool built using React and Vite.  
-It allows users to edit, sign, merge, split, rotate, and compress PDF files directly from their browser without the need for server uploads.  
-All operations run locally, ensuring data privacy, high speed, and smooth performance.
+**PDF King** is a powerful, privacy-first PDF utility application built with **React** and **Vite**. It allows you to merge, split, edit, and convert PDF documents directly in your browser without uploading any data to a server.
 
----
+## 🚀 Features
 
-## Live Demo
-Project is deployed and live at:  
-[https://kartik7588.github.io/PDF-King/](https://kartik7588.github.io/PDF-King/)
+PDF King offers a comprehensive suite of tools for all your PDF needs:
 
----
+*   **📄 Merge PDF**: Combine multiple PDF files into a single document.
+*   **✂️ Split PDF**: Extract specific pages or ranges from a PDF.
+*   **🔄 Rotate PDF**: Rotate individual pages or all pages at once.
+*   **🖼️ Image to PDF**: Convert multiple images (JPG, PNG, WEBP) into a single PDF.
+    *   *New:* Supports manual reordering by typing positions directly on image previews.
+*   **📸 Export to Image**: Convert PDF pages into high-resolution images (PNG or JPG).
+    *   Download single pages or bulk export as a ZIP archive.
+*   **✍️ Edit PDF**: Add text annotations, shapes, and overlays to your documents.
+*   **✒️ Add Media & Signatures**: Insert images and digital signatures into your PDF.
+*   **📉 Compress PDF**: Reduce PDF file size while maintaining quality (Client-side optimization).
+*   **📂 Download Manager**: integrated history of your processed files.
 
-## Features
+## 🔒 Privacy Focused
 
-### 1. Edit PDF
-- Add, edit, move, and resize text annotations on PDFs.  
-- Double-click to edit text content, drag to reposition, or remove if needed.  
-- Font size and positioning can be adjusted freely.
+**No servers. No uploads.**
+PDF King runs entirely on the client-side using `pdf-lib` and `react-pdf`. Your documents never leave your device, ensuring maximum privacy and security.
 
-### 2. Add Media or Signatures
-- Upload signatures or images using drag-and-drop functionality.  
-- Resize, crop, and move media freely for better placement.  
-- Image compression and scaling included for optimized performance.
+## 🛠️ Tech Stack
 
-### 3. Merge and Split PDFs
-- Merge multiple PDFs into one consolidated document.  
-- Split a large PDF into smaller parts quickly and efficiently.
+*   **Frontend**: React 19, Vite 7
+*   **PDF Processing**: `pdf-lib`, `react-pdf`
+*   **Styling**: Modern CSS3 (Variables, Flexbox/Grid), Glassmorphism UI
+*   **Icons**: `lucide-react`
+*   **State/Storage**: `idb` (IndexedDB) for local history
+*   **Build Tool**: Vite
 
-### 4. Rotate Pages
-- Rotate single or multiple PDF pages and instantly preview changes.
+## 📦 Installation & Running Locally
 
-### 5. Compress PDFs
-- Adjustable compression slider with real-time preview of estimated size.  
-- Displays output size before download to ensure balanced quality and storage efficiency.
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/kartik7588/PDF-King.git
+    cd PDF-King
+    ```
 
-### 6. Security and Performance
-- 100% client-side — no server interaction, ensuring complete privacy.  
-- Uses **pdf-lib** and **react-pdf** for in-browser PDF rendering and editing.
+2.  **Install dependencies**
+    ```bash
+    npm install
+    # or
+    yarn install
+    ```
 
-### 7. Responsive and Optimized
-- Built with TailwindCSS and Vite for a clean, fast, responsive UI.  
-- Works perfectly on both desktop and mobile browsers.
+3.  **Start the development server**
+    ```bash
+    npm run dev
+    ```
 
----
+4.  **Build for production**
+    ```bash
+    npm run build
+    ```
 
-## Tech Stack
+## 🤝 Contribution
 
-| Layer | Tools |
-|-------|--------|
-| Frontend | React (Vite), TailwindCSS |
-| PDF Handling | pdf-lib, react-pdf |
-| Routing | React Router DOM (HashRouter) |
-| UI Components | Lucide Icons, Custom Components |
-| Deployment | GitHub Pages using gh-pages |
+Contributions are welcome! Feel free to open issues or submit pull requests to improve the application.
 
----
+## 📄 License
 
-## Complete Setup and Deployment Guide
-
-### Step 1: Clone the Repository
-Clone this repository to your local system:
-```bash
-git clone https://github.com/kartik7588/PDF-King.git
-cd PDF-King
-```
-
-### Step 2: Install Dependencies
-```bash
-npm install
-```
-
-### Step 3: Run the Development Server
-Run the local development server:
-```bash
-npm run dev
-```
-Then open in your browser:
-http://localhost:5173/
-
-### Step 4: Build for Production
-Build the project for production:
-```bash
-npm run build
-```
+This project is open-source and available under the [MIT License](LICENSE).
 
 ---
-
-## How It Works
-- The app uses **pdf-lib** to manipulate PDFs entirely on the client side.
-- **react-pdf** renders PDFs for preview.
-- Annotations (text, images) are managed as state and drawn dynamically onto the document.
-- The final edited PDF is generated in-memory and offered for download.
-- The project is deployed via GitHub Pages using the `gh-pages` package.
-
----
-
-## Future Enhancements
-- [ ] AI-powered document summarization and auto form-filling.
-- [ ] Smart signature detection and alignment.
-- [ ] Integration with cloud storage platforms such as Google Drive or Dropbox.
-- [ ] Undo/Redo functionality for editing actions.
-- [ ] Enhanced mobile drag and touch event handling.
-
----
-
-## Developer
-**Author:** Kartik Jangid  
-**Role:** Computer Science Engineer | Full Stack Developer | Creator of PDF King
-
-*"Built to make PDF editing fast, simple, and private."*
-
----
-
-## Acknowledgements
-- React PDF
-- pdf-lib
-- Vite
-- TailwindCSS
-- Lucide Icons
+*Developed with ❤️ by Kartik*
