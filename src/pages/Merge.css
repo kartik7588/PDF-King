@@ -149,3 +149,40 @@
     transform: none;
     box-shadow: none;
 }
+
+.error-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30, 41, 59, 0.95);
+    border: 1px solid #ef4444;
+    color: #ef4444;
+    padding: 12px 20px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    font-weight: 500;
+    max-width: 90%;
+    animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    backdrop-filter: blur(8px);
+}
+
+.error-toast svg {
+    flex-shrink: 0;
+}
+
+@keyframes slide-up {
+    from {
+        transform: translate(-50%, 20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}

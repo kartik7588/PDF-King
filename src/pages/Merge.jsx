@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'; // Note: react-beautiful-dnd might have strict mode issues, using simple array move for now to avoid complexity or I'll implement a simple list without dnd first for MVP functionality.
-import { FileText, X, ArrowDown, ArrowUp } from 'lucide-react';
+import { FileText, X, ArrowDown, ArrowUp, AlertCircle } from 'lucide-react';
 import Dropzone from '../components/Dropzone';
 import { mergePDFs } from '../utils/pdfActions';
 import { trackDownload } from '../utils/analytics';
@@ -12,6 +12,7 @@ export default function Merge() {
     const [isMerging, setIsMerging] = useState(false);
     const [mergedBlob, setMergedBlob] = useState(null);
     const [downloadUrl, setDownloadUrl] = useState(null);
+    const [toastMessage, setToastMessage] = useState(null);
 
     const handleFilesDropped = (newFiles) => {
         const validFiles = newFiles.filter(file => {
@@ -52,7 +53,11 @@ export default function Merge() {
     };
 
     const handleMerge = async () => {
-        if (files.length < 2) return;
+        if (files.length < 2) {
+            setToastMessage("At least 2 PDF files are required to merge.");
+            setTimeout(() => setToastMessage(null), 3000);
+            return;
+        }
 
         setIsMerging(true);
         try {
@@ -162,7 +167,7 @@ export default function Merge() {
                                 <button
                                     className="btn-primary merge-btn"
                                     onClick={handleMerge}
-                                    disabled={files.length < 2 || isMerging}
+                                    disabled={isMerging}
                                 >
                                     {isMerging ? 'Merging...' : 'Merge PDFs'}
                                 </button>
@@ -171,6 +176,13 @@ export default function Merge() {
                     </div>
                 )}
             </div>
+
+            {toastMessage && (
+                <div className="error-toast">
+                    <AlertCircle size={20} />
+                    <span>{toastMessage}</span>
+                </div>
+            )}
         </div>
     );
 }
