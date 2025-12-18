@@ -53,6 +53,11 @@ export default function Edit() {
     };
 
     const addText = () => {
+        const isMobile = isMobileDevice();
+        // Desktop: Pixels (50, 50)
+        // Mobile: Points (approx 50 points ~ 66px at 96dpi, but pdf-lib points are 1/72 inch). 
+        // We'll use 50 as a safe default for both for now, but mark unit.
+
         const newText = {
             id: Date.now(),
             text: "Double click to edit",
@@ -61,13 +66,39 @@ export default function Edit() {
             size: 16,
             color: { r: 0, g: 0, b: 0 },
             isEditing: true, // Start in edit mode
-            page: currPage - 1 // Store 0-indexed page
+            page: currPage - 1, // Store 0-indexed page
+            unit: isMobile ? 'point' : 'pixel'
         };
         setTexts([...texts, newText]);
     };
 
     const updateTextPos = (id, x, y) => {
-        setTexts(prev => prev.map(t => t.id === id ? { ...t, x, y } : t));
+        setTexts(prev => prev.map(t => {
+            if (t.id !== id) return t;
+
+            // If unit is point, we must convert the incoming PIXEL coordinates (from Draggable) to POINTS
+            // x, y came from onUpdatePosition => raw pixels relative to container 
+            // Draggable handler in Edit.jsx currently passes: x / zoom, y / zoom.
+            // But wait, DraggableTextOverlay passes (initial + dx). 
+            // In Edit.jsx render: onUpdatePosition={(id, newX, newY) => updateTextPos(id, newX / zoom, newY / zoom)}
+            // So x, y here are ALREADY divided by Zoom. They are "Unzoomed Pixels" (Rendered Pixels at 100% scale).
+
+            if (t.unit === 'point') {
+                // To convert Unzoomed Pixels to PDF Points: divide by 'scale' (RenderWidth / PDFPointWidth)
+                // scale was set in onLoadSuccess: setScale(width / originalWidth);
+                // originalWidth from react-pdf is usually in points (UserUnit).
+
+                // Safety check for scale
+                const safeScale = scale || 1;
+                return {
+                    ...t,
+                    x: x / safeScale,
+                    y: y / safeScale
+                };
+            }
+
+            return { ...t, x, y };
+        }));
     };
 
     const updateTextContent = (id, newContent) => {
@@ -155,28 +186,47 @@ export default function Edit() {
         const width = selectedWordVisualWidth / zoom;
         const height = spanRect.height / zoom;
 
+        // Mobile Unit Conversion
+        const isMobile = isMobileDevice();
+        let finalX = relativeX;
+        let finalY = relativeY;
+        let finalWidth = width;
+        let finalHeight = height;
+        let finalSize = parseFloat(computedStyle.fontSize) / zoom;
+
+        // If mobile, convert everything to points immediately for consistency
+        if (isMobile) {
+            const safeScale = scale || 1;
+            finalX = relativeX / safeScale;
+            finalY = relativeY / safeScale;
+            finalWidth = width / safeScale;
+            finalHeight = height / safeScale;
+            finalSize = finalSize / safeScale;
+        }
+
         // Create new replacement annotation
         const newText = {
             id: Date.now(),
             text: selectedWord,
             originalText: selectedWord,
-            x: relativeX,
-            y: relativeY,
-            width: width, // Fixed width from original word
-            height: height,
+            x: finalX,
+            y: finalY,
+            width: finalWidth, // Fixed width
+            height: finalHeight,
             cover: { // Permanent cover position
-                x: relativeX,
-                y: relativeY,
-                width: width,
-                height: height
+                x: finalX,
+                y: finalY,
+                width: finalWidth,
+                height: finalHeight
             },
-            size: parseFloat(computedStyle.fontSize) / zoom,
+            size: finalSize,
             color: { r: 0, g: 0, b: 0 },
             isEditing: true,
             page: currPage - 1,
             isReplacement: true,
             fixedWidth: true, // Lock width
-            maxWidth: width // Constraint
+            maxWidth: finalWidth, // Constraint
+            unit: isMobile ? 'point' : 'pixel'
         };
 
         setTexts([...texts, newText]);
@@ -209,6 +259,7 @@ export default function Edit() {
                 const currentScale = scale || 1;
                 // Note: We don't pass zoom to saveEditorChanges because coordinates are already in unzoomed space
                 // We use the raw 'scale' (Render:Original ratio) to map back to PDF points
+                // We pass the RAW scale here. editorUtils will handle 'point' vs 'pixel' logic.
                 const pdfBytesUint8 = await saveEditorChanges(file, texts, currentScale);
                 pdfBytes = pdfBytesUint8.buffer;
             }
@@ -346,7 +397,7 @@ export default function Edit() {
             }
         };
 
-        const wrapper =canvasWrapperRef.current;
+        const wrapper = canvasWrapperRef.current;
         if (wrapper) {
             wrapper.addEventListener('wheel', handleWheel, { passive: false });
             return () => wrapper.removeEventListener('wheel', handleWheel);
@@ -532,10 +583,10 @@ export default function Edit() {
                                                 className="whiteout-cover-static"
                                                 style={{
                                                     position: 'absolute',
-                                                    left: textItem.cover.x * zoom,
-                                                    top: textItem.cover.y * zoom,
-                                                    width: textItem.cover.width * zoom,
-                                                    height: textItem.cover.height * zoom,
+                                                    left: textItem.unit === 'point' ? textItem.cover.x * scale * zoom : textItem.cover.x * zoom,
+                                                    top: textItem.unit === 'point' ? textItem.cover.y * scale * zoom : textItem.cover.y * zoom,
+                                                    width: textItem.unit === 'point' ? textItem.cover.width * scale * zoom : textItem.cover.width * zoom,
+                                                    height: textItem.unit === 'point' ? textItem.cover.height * scale * zoom : textItem.cover.height * zoom,
                                                     backgroundColor: 'white',
                                                     zIndex: 15,
                                                     pointerEvents: 'none'
@@ -549,10 +600,10 @@ export default function Edit() {
                                                 className="whiteout-cover-dynamic"
                                                 style={{
                                                     position: 'absolute',
-                                                    left: textItem.x * zoom,
-                                                    top: textItem.y * zoom,
-                                                    width: (textItem.width || textItem.cover?.width || 100) * zoom,
-                                                    height: (textItem.height || textItem.cover?.height || 20) * zoom,
+                                                    left: textItem.unit === 'point' ? textItem.x * scale * zoom : textItem.x * zoom,
+                                                    top: textItem.unit === 'point' ? textItem.y * scale * zoom : textItem.y * zoom,
+                                                    width: (textItem.width || textItem.cover?.width || 100) * (textItem.unit === 'point' ? scale * zoom : zoom),
+                                                    height: (textItem.height || textItem.cover?.height || 20) * (textItem.unit === 'point' ? scale * zoom : zoom),
                                                     backgroundColor: 'white',
                                                     zIndex: 15,
                                                     pointerEvents: 'none',
@@ -569,9 +620,12 @@ export default function Edit() {
                                         <DraggableTextOverlay
                                             id={textItem.id}
                                             text={textItem.text}
-                                            x={textItem.x * zoom}
-                                            y={textItem.y * zoom}
-                                            fontSize={textItem.size * zoom}
+                                            // Calculate Visual Position (Pixel Space)
+                                            // If pixel unit: x * zoom
+                                            // If point unit: x * scale * zoom
+                                            x={textItem.unit === 'point' ? textItem.x * scale * zoom : textItem.x * zoom}
+                                            y={textItem.unit === 'point' ? textItem.y * scale * zoom : textItem.y * zoom}
+                                            fontSize={textItem.unit === 'point' ? textItem.size * scale * zoom : textItem.size * zoom}
                                             // fontSize also needs zoom if DraggableTextOverlay doesn't multiply it internally?
                                             // DraggableTextOverlay receives 'zoom' prop. 
                                             // Let's check: It USES zoom for resize calc, but applies fontSize directly to style.
@@ -581,7 +635,7 @@ export default function Edit() {
                                             isEditing={textItem.isEditing}
                                             zoom={zoom}
                                             fixedWidth={textItem.fixedWidth}
-                                            maxWidth={textItem.maxWidth ? textItem.maxWidth * zoom : 0}
+                                            maxWidth={textItem.maxWidth ? (textItem.unit === 'point' ? textItem.maxWidth * scale * zoom : textItem.maxWidth * zoom) : 0}
                                             onUpdatePosition={(id, newX, newY) => updateTextPos(id, newX / zoom, newY / zoom)}
                                             onUpdateText={updateTextContent}
                                             onUpdateSize={(id, newSize) => updateTextSize(id, newSize / zoom)}
