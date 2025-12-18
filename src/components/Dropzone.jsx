@@ -5,7 +5,7 @@ import './Dropzone.css';
 
 
 
-export default function Dropzone({ onFilesDropped, accept = "application/pdf", multiple = true }) {
+export default function Dropzone({ onFilesDropped, accept = "application/pdf", multiple = true, text = "Drop your PDF files here" }) {
     const [isDragging, setIsDragging] = useState(false);
     const [errorMessage, setErrorMessage] = useState(null);
     const inputRef = useRef(null);
@@ -28,20 +28,28 @@ export default function Dropzone({ onFilesDropped, accept = "application/pdf", m
             // Check if file matches accepted type
             // For PDF, we check strictly. properties might vary but type usually is application/pdf
             // We also check extension as fallback
-            const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith('.pdf');
+            let isValid = false;
 
-            if (accept === "application/pdf" && !isPdf && accept !== "*") {
-                hasInvalidFiles = true;
-            } else if (accept !== "*" && file.type !== accept && !file.name.toLowerCase().endsWith('.pdf')) {
-                // Generic check if we ever change accept prop, though primarily built for PDF here
-                hasInvalidFiles = true;
+            if (accept === "*" || !accept) {
+                isValid = true;
+            } else if (accept === "application/pdf") {
+                isValid = file.type === "application/pdf" || file.name.toLowerCase().endsWith('.pdf');
+            } else if (accept === "image/*") {
+                isValid = file.type.startsWith('image/');
             } else {
+                isValid = file.type === accept;
+            }
+
+            if (isValid) {
                 validFiles.push(file);
+            } else {
+                hasInvalidFiles = true;
             }
         });
 
         if (hasInvalidFiles) {
-            setErrorMessage("Please upload PDF files only.");
+            const typeName = accept === "application/pdf" ? "PDF" : accept === "image/*" ? "Image" : "valid";
+            setErrorMessage(`Please upload ${typeName} files only.`);
             setTimeout(() => setErrorMessage(null), 3000);
         }
 
@@ -88,7 +96,7 @@ export default function Dropzone({ onFilesDropped, accept = "application/pdf", m
                         <UploadCloud size={40} className="upload-icon" />
                     )}
                 </div>
-                <h3>{errorMessage || "Drop your PDF files here"}</h3>
+                <h3>{errorMessage || text}</h3>
                 <p className={clsx({ "error-text": errorMessage })}>
                     {errorMessage ? "Invalid file format" : "or click to select files"}
                 </p>

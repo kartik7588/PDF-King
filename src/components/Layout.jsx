@@ -10,7 +10,9 @@ import {
   Home,
   Menu,
   X,
-  Download
+  Download,
+  FileImage,
+  Image as ImageIcon
 } from 'lucide-react';
 import clsx from 'clsx';
 import './Layout.css'; // We'll create this for layout-specific styles
@@ -23,6 +25,8 @@ const SIDEBAR_ITEMS = [
   { icon: ImagePlus, label: 'Add Media', path: '/add-media' },
   { icon: Minimize2, label: 'Compress', path: '/compress' },
   { icon: PenTool, label: 'Edit PDF', path: '/edit' },
+  { icon: ImageIcon, label: 'Export to Image', path: '/export-images' },
+  { icon: FileImage, label: 'Image to PDF', path: '/image-to-pdf' },
   { icon: Download, label: 'Downloads', path: '/downloads' },
 ];
 
