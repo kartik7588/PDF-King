@@ -7,6 +7,11 @@ import { trackDownload } from '../utils/analytics';
 import { saveDownloadRecord } from '../utils/downloadManager';
 import './Merge.css';
 
+/**
+ * Render a UI for selecting, reordering, merging, and downloading PDF files.
+ * Provides drag-and-drop and file input for adding PDFs, controls to reorder or remove files, merge initiation with progress feedback, and download recording.
+ * @returns {JSX.Element} The rendered Merge component UI.
+ */
 export default function Merge() {
     const [files, setFiles] = useState([]);
     const [isMerging, setIsMerging] = useState(false);
