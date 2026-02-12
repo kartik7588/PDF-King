@@ -1,0 +1,70 @@
+.tool-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    height: 100%;
+}
+
+.tool-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 20px rgba(99, 102, 241, 0.15);
+}
+
+.icon-wrapper {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    width: fit-content;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.tool-card:hover .icon-wrapper {
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.text-primary {
+    color: var(--color-primary);
+}
+
+.text-secondary {
+    color: var(--color-secondary);
+}
+
+.text-accent {
+    color: var(--color-text-accent);
+}
+
+.card-content h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--color-text-primary);
+}
+
+.card-content p {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.card-hover-effect {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.1), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.tool-card:hover .card-hover-effect {
+    opacity: 1;
+}

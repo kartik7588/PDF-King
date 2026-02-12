@@ -1,0 +1,133 @@
+.media-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.work-area {
+    padding: 1rem;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color-bg-card);
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border: 1px solid var(--color-border);
+}
+
+.tool-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.action-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.page-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.image-upload-section {
+    flex: 1;
+    max-width: 250px;
+    min-width: 180px;
+}
+
+.canvas-wrapper {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    overflow: auto;
+    background: var(--color-bg-secondary);
+    padding: 2rem;
+    border-radius: var(--radius-md);
+}
+
+.page-container {
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.draggable-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    cursor: move;
+    border: 2px dashed var(--color-primary);
+    z-index: 100;
+}
+
+.draggable-image:hover {
+    border-color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.page-controls button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.page-controls button:disabled {
+    opacity: 0.3;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .toolbar {
+        gap: 0.75rem;
+        padding: 0.5rem;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .image-upload-section {
+        flex: 1 1 100%;
+        max-width: 100%;
+        min-width: 100%;
+        order: 1;
+        /* Dropzone top on mobile */
+    }
+
+    .page-controls {
+        order: 2;
+        flex: 1 1 auto;
+        justify-content: space-between;
+    }
+
+    .action-controls {
+        order: 3;
+        flex: 1 1 auto;
+        width: 100%;
+    }
+
+    .action-controls button {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+    }
+
+    .canvas-wrapper {
+        padding: 0.5rem;
+        min-height: 50vh;
+        overflow: hidden;
+        /* Manage via touch logic */
+    }
+}

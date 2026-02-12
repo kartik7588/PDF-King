@@ -1,0 +1,193 @@
+import React, { useState } from 'react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'; // Note: react-beautiful-dnd might have strict mode issues, using simple array move for now to avoid complexity or I'll implement a simple list without dnd first for MVP functionality.
+import { FileText, X, ArrowDown, ArrowUp, AlertCircle } from 'lucide-react';
+import Dropzone from '../components/Dropzone';
+import { mergePDFs } from '../utils/pdfActions';
+import { trackDownload } from '../utils/analytics';
+import { saveDownloadRecord } from '../utils/downloadManager';
+import './Merge.css';
+
+/**
+ * Render a UI for selecting, reordering, merging, and downloading PDF files.
+ * Provides drag-and-drop and file input for adding PDFs, controls to reorder or remove files, merge initiation with progress feedback, and download recording.
+ * @returns {JSX.Element} The rendered Merge component UI.
+ */
+export default function Merge() {
+    const [files, setFiles] = useState([]);
+    const [isMerging, setIsMerging] = useState(false);
+    const [mergedBlob, setMergedBlob] = useState(null);
+    const [downloadUrl, setDownloadUrl] = useState(null);
+    const [toastMessage, setToastMessage] = useState(null);
+
+    const handleFilesDropped = (newFiles) => {
+        const validFiles = newFiles.filter(file => {
+            if (file.size > 150 * 1024 * 1024) {
+                alert(`Skipped ${file.name}: File exceeds 150MB limit.`);
+                return false;
+            }
+            return true;
+        });
+
+        if (validFiles.length === 0) return;
+
+        // Add unique ID to each file for list key
+        const filesWithId = validFiles.map(file => ({
+            file,
+            id: Math.random().toString(36).substr(2, 9),
+            name: file.name,
+            size: (file.size / 1024 / 1024).toFixed(2) // MB
+        }));
+        setFiles(prev => [...prev, ...filesWithId]);
+        setDownloadUrl(null); // Reset prev merge
+    };
+
+    const removeFile = (id) => {
+        setFiles(files.filter(f => f.id !== id));
+    };
+
+    const moveFile = (index, direction) => {
+        if (
+            (direction === 'up' && index === 0) ||
+            (direction === 'down' && index === files.length - 1)
+        ) return;
+
+        const newFiles = [...files];
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+        [newFiles[index], newFiles[targetIndex]] = [newFiles[targetIndex], newFiles[index]];
+        setFiles(newFiles);
+    };
+
+    const handleMerge = async () => {
+        if (files.length < 2) {
+            setToastMessage("At least 2 PDF files are required to merge.");
+            setTimeout(() => setToastMessage(null), 3000);
+            return;
+        }
+
+        setIsMerging(true);
+        try {
+            const mergedBytes = await mergePDFs(files.map(f => f.file));
+            const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            setMergedBlob(blob);
+            setDownloadUrl(url);
+        } catch (error) {
+            alert(error.message);
+        } finally {
+            setIsMerging(false);
+        }
+    };
+
+    const handleDownload = async () => {
+        if (!mergedBlob) return;
+        const fileName = 'merged-document.pdf';
+        const sizeStr = (mergedBlob.size / 1024 / 1024).toFixed(2) + ' MB';
+
+        trackDownload('Merge', {
+            fileCount: files.length,
+            size: sizeStr
+        });
+
+        await saveDownloadRecord(fileName, sizeStr, mergedBlob, 'Merge');
+
+        // Trigger download
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+
+    return (
+        <div className="merge-container">
+            <div className="merge-header">
+                <h2>Merge PDF Files</h2>
+                <p>Combine multiple PDFs into one. Drag and drop to reorder.</p>
+            </div>
+
+            <div className="merge-workspace">
+                {files.length === 0 ? (
+                    <Dropzone onFilesDropped={handleFilesDropped} />
+                ) : (
+                    <div className="file-list-container glass-panel">
+                        <div className="file-actions-bar">
+                            <button className="btn-secondary" onClick={() => setFiles([])}>Clear All</button>
+                            <button className="btn-add-more">
+                                <label htmlFor="add-more-input">Add More Files</label>
+                                <input
+                                    id="add-more-input"
+                                    type="file"
+                                    multiple
+                                    accept="application/pdf"
+                                    onChange={(e) => handleFilesDropped(Array.from(e.target.files))}
+                                    style={{ display: 'none' }}
+                                />
+                            </button>
+                        </div>
+
+                        <div className="file-list">
+                            {files.map((file, index) => (
+                                <div key={file.id} className="file-item">
+                                    <div className="file-info">
+                                        <FileText size={24} className="text-secondary" />
+                                        <div>
+                                            <span className="file-name">{file.name}</span>
+                                            <span className="file-size">{file.size} MB</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="file-controls">
+                                        <button
+                                            onClick={() => moveFile(index, 'up')}
+                                            disabled={index === 0}
+                                            className="control-btn"
+                                        >
+                                            <ArrowUp size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => moveFile(index, 'down')}
+                                            disabled={index === files.length - 1}
+                                            className="control-btn"
+                                        >
+                                            <ArrowDown size={16} />
+                                        </button>
+                                        <button onClick={() => removeFile(file.id)} className="control-btn delete">
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="merge-actions">
+                            {downloadUrl ? (
+                                <button
+                                    onClick={handleDownload}
+                                    className="btn-primary download-btn"
+                                >
+                                    Download Merged PDF
+                                </button>
+                            ) : (
+                                <button
+                                    className="btn-primary merge-btn"
+                                    onClick={handleMerge}
+                                    disabled={isMerging}
+                                >
+                                    {isMerging ? 'Merging...' : 'Merge PDFs'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {toastMessage && (
+                <div className="error-toast">
+                    <AlertCircle size={20} />
+                    <span>{toastMessage}</span>
+                </div>
+            )}
+        </div>
+    );
+}

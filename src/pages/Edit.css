@@ -1,0 +1,239 @@
+/* Text Layer - vital for click detection */
+.react-pdf__Page__textLayer {
+    z-index: 5 !important;
+    opacity: 1 !important;
+    /* Make sure it's present but invisible usually? Or we want it transparent? */
+    /* react-pdf usually makes text transparent color: transparent */
+}
+
+.react-pdf__Page__textContent span {
+    cursor: text;
+    pointer-events: auto;
+}
+
+.edit-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.canvas-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    min-height: 400px;
+}
+
+.zoom-container {
+    will-change: transform;
+    touch-action: none;
+}
+
+.page-container {
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    display: inline-block;
+    /* Ensure it wraps the Page content */
+}
+
+.draggable-text {
+    position: absolute;
+    cursor: move;
+    border: 1px dashed transparent;
+    padding: 2px;
+    z-index: 100;
+    /* Ensure it is above the PDF Canvas */
+}
+
+.draggable-text.active {
+    border-color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.draggable-text textarea {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-family: 'Helvetica', sans-serif;
+    /* Setup to match PDF font roughly */
+    resize: none;
+    width: auto;
+    min-width: 100px;
+    height: auto;
+    overflow: hidden;
+    outline: none;
+    white-space: pre;
+}
+
+.delete-handle {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+}
+
+/* Zoom Controls */
+.zoom-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+}
+
+.zoom-btn {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.zoom-btn:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+    transform: scale(1.05);
+}
+
+.zoom-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.zoom-level {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    min-width: 50px;
+    text-align: center;
+}
+
+/* Mobile Optimizations */
+
+.badge-count {
+    font-size: 10px;
+    background: #ef4444;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 4px;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .edit-container {
+        padding: 0;
+    }
+
+    .canvas-wrapper {
+        padding: 10px;
+        min-height: 50vh;
+        /* Allow horizontal scrolling if zoomed out, but prevent it if fit to screen? 
+           Actually, rely on touch zoom/pan for navigation within wrapper.
+        */
+        overflow: hidden;
+        /* We handle pan manually via transform */
+        background: var(--color-bg-secondary);
+        /* Dark background for canvas area */
+    }
+
+    .zoom-controls {
+        bottom: 80px;
+        /* Move up to avoid conflicts with bottom safe areas or other controls */
+        right: 16px;
+        padding: 8px;
+        gap: 12px;
+        /* Vertical layout on mobile to save width */
+        flex-direction: column;
+        background: var(--color-bg-card);
+        /* Dark glassmorphism */
+        border: 1px solid var(--color-border);
+    }
+
+    .zoom-btn {
+        width: 44px;
+        /* Larger touch target */
+        height: 44px;
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+    }
+
+    .zoom-level {
+        font-size: 12px;
+        min-width: unset;
+        writing-mode: vertical-lr;
+        /* Vertical text or just icon? Let's hide text on mobile to save space */
+        display: none;
+    }
+
+    .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: var(--color-bg-card);
+        /* Dark Theme */
+        backdrop-filter: blur(5px);
+        margin-bottom: 0;
+        border-bottom: 1px solid var(--color-border);
+        border-radius: 0;
+        padding: 12px;
+    }
+
+    .page-controls {
+        justify-content: space-between;
+        width: 100%;
+        order: 1;
+    }
+
+    .tool-controls {
+        width: 100%;
+        justify-content: center;
+        /* Center "Add Text" */
+        order: 2;
+    }
+
+    .action-controls {
+        width: 100%;
+        order: 3;
+    }
+
+    .action-controls button {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+        /* Fat button for easy tap */
+    }
+
+    .page-container {
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        /* Stronger shadow for dark mode */
+    }
+}
