@@ -5,7 +5,7 @@ import './Dropzone.css';
 
 
 
-export default function Dropzone({ onFilesDropped, accept = "application/pdf", multiple = true, text = "Drop your PDF files here" }) {
+export default function Dropzone({ onFilesDropped, accept = "application/pdf", multiple = true, text = "Drop PDF files here" }) {
     const [isDragging, setIsDragging] = useState(false);
     const [errorMessage, setErrorMessage] = useState(null);
     const inputRef = useRef(null);
@@ -105,7 +105,7 @@ export default function Dropzone({ onFilesDropped, accept = "application/pdf", m
                 </div>
                 <h3>{errorMessage || text}</h3>
                 <p className={clsx({ "error-text": errorMessage })}>
-                    {errorMessage ? "Invalid file format" : "or click to select files"}
+                    {errorMessage ? "Choose a supported file and try again." : "or choose files from your device"}
                 </p>
             </div>
 

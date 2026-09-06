@@ -19,63 +19,63 @@ export default function Home() {
             to: '/merge',
             icon: Files,
             title: 'Merge PDF',
-            description: 'Combine multiple PDF files into one single document in seconds.',
+            description: 'Put several PDFs into one document, in the order you choose.',
             colorClass: 'text-primary'
         },
         {
             to: '/split',
             icon: Scissors,
             title: 'Split PDF',
-            description: 'Separate one page or a whole set for easy conversion into independent PDF files.',
+            description: 'Extract selected pages or a page range into a new PDF.',
             colorClass: 'text-secondary'
         },
         {
             to: '/rotate',
             icon: RotateCw,
             title: 'Rotate PDF',
-            description: 'Rotate your split PDF files however you like. Rotate multiple PDFs at once.',
+            description: 'Turn individual pages or the whole document by 90 degrees.',
             colorClass: 'text-accent'
         },
         {
             to: '/add-media',
             icon: ImagePlus,
             title: 'Add Media',
-            description: 'Insert images or signatures into your PDF documents with ease.',
+            description: 'Place images or signatures on a page and save the result.',
             colorClass: 'text-secondary'
         },
         {
             to: '/compress',
             icon: Minimize2,
             title: 'Compress PDF',
-            description: 'Reduce the file size of your PDF while maintaining the best quality possible.',
+            description: 'Create a smaller PDF file with the compression level you select.',
             colorClass: 'text-primary'
         },
         {
             to: '/edit',
             icon: PenTool,
             title: 'Edit PDF',
-            description: 'Add text, shapes, and annotations to your PDF document.',
+            description: 'Add and position text annotations in an existing PDF.',
             colorClass: 'text-accent'
         },
         {
             to: '/image-to-pdf',
             icon: FileImage,
             title: 'Image to PDF',
-            description: 'Convert your images (PNG, JPG) to PDF documents instantly.',
+            description: 'Combine images into a PDF and set the page order first.',
             colorClass: 'text-secondary'
         },
         {
             to: '/export-images',
             icon: ImageIcon,
             title: 'Export to Image',
-            description: 'Convert PDF pages to high-quality PNG or JPG images.',
+            description: 'Export individual PDF pages as PNG or JPG files.',
             colorClass: 'text-primary'
         },
         {
             to: '/downloads',
             icon: Download,
             title: 'Downloads',
-            description: 'Access and manage all your processed PDF files.',
+            description: 'Re-download files stored in this browser’s local history.',
             colorClass: 'text-accent'
         }
     ];
@@ -84,10 +84,10 @@ export default function Home() {
         <div className="home-container">
             <div className="hero-section">
                 <h1 className="hero-title">
-                    All your <span className="text-gradient">PDF Tools</span> in one place.
+                    PDF work that stays on your device.
                 </h1>
                 <p className="hero-subtitle">
-                    Secure, private, and fast. All processing happens right in your browser.
+                    Choose a tool, add your files, and download the result. PDF King processes files in your browser; it does not upload them to a server.
                 </p>
             </div>
 

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kartik7588.github.io/PDF-King/sitemap.xml

@@ -5,7 +5,7 @@
     height: 100vh;
     width: 100vw;
     overflow: hidden;
-    background: radial-gradient(circle at top right, #1e1b4b, var(--color-bg-primary));
+    background: var(--color-bg-primary);
 }
 
 /* Sidebar */
@@ -30,17 +30,16 @@
 }
 
 .logo-icon {
-    font-size: 1.75rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    color: var(--color-primary);
 }
 
 .logo-text {
     font-size: 1.5rem;
     font-weight: 700;
-    letter-spacing: -0.5px;
-    background: linear-gradient(to right, #fff, #94a3b8);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.035em;
+    color: var(--color-text-primary);
 }
 
 .sidebar-nav {
@@ -65,17 +64,16 @@
 }
 
 .nav-item:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: #f0e9df;
     color: var(--color-text-primary);
     transform: translateX(4px);
 }
 
 .nav-item.active {
-    background: rgba(99, 102, 241, 0.15);
-    /* Indigo tint */
+    background: #f5dfd8;
     color: var(--color-primary);
-    border-color: rgba(99, 102, 241, 0.3);
-    box-shadow: 0 0 15px rgba(99, 102, 241, 0.1);
+    border-color: #e5b6aa;
+    box-shadow: none;
 }
 
 .sidebar-footer {
@@ -124,7 +122,7 @@
 .mobile-header {
     display: none;
     padding: 1rem;
-    background: var(--color-bg-secondary);
+    background: var(--color-bg-card);
     align-items: center;
     justify-content: space-between;
     position: fixed;
@@ -138,7 +136,7 @@
 .menu-btn {
     background: none;
     border: none;
-    color: white;
+    color: var(--color-text-primary);
     cursor: pointer;
 }
 

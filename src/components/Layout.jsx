@@ -46,7 +46,7 @@ export default function Layout() {
       {/* Mobile Header */}
       <header className="mobile-header">
         <div className="logo-mobile">
-          <span className="logo-icon">👑</span>
+          <Files className="logo-icon" aria-hidden="true" />
           <span className="logo-text">PDF King</span>
         </div>
         <button className="menu-btn" onClick={toggleSidebar}>
@@ -58,7 +58,7 @@ export default function Layout() {
       <aside className={clsx("sidebar glass-panel", { "open": isSidebarOpen })}>
         <div className="sidebar-header">
           <div className="logo-container">
-            <span className="logo-icon">👑</span>
+            <Files className="logo-icon" aria-hidden="true" />
             <h1 className="logo-text">PDF King</h1>
           </div>
         </div>
@@ -78,8 +78,8 @@ export default function Layout() {
         </nav>
 
         <div className="sidebar-footer">
-          <p>© 2025 PDF King</p>
-          <p className="version">v1.0.0 Client-Side</p>
+          <p>PDF tools that run in your browser</p>
+          <p className="version">Files remain on this device</p>
         </div>
       </aside>
 

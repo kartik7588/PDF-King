@@ -11,6 +11,7 @@ import AddMedia from './pages/AddMedia';
 import Edit from './pages/Edit';
 import Compress from './pages/Compress';
 import DownloadedFiles from './pages/DownloadedFiles';
+import Seo from './components/Seo';
 
 const Placeholder = ({ title }) => (
   <div className="glass-panel" style={{ padding: '2rem' }}>
@@ -22,6 +23,7 @@ const Placeholder = ({ title }) => (
 function App() {
   return (
     <HashRouter>
+      <Seo />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
